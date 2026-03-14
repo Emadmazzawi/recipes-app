@@ -24,7 +24,7 @@ export default {
   scheme: "recipesapp",
   extra: {
     eas: {
-      projectId: "f80cef06-1ee4-4313-ba90-90dd41d591a4"
+      projectId: "f80cef06"
     },
     geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY
   }
