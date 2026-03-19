@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getPersonalRecipes, deletePersonalRecipe } from '../../lib/storage';
+import { getPersonalRecipes, deletePersonalRecipe, getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { Recipe } from '../../types';
 import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
@@ -29,35 +29,44 @@ export default function MyRecipesScreen() {
   const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const fabScale = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
 
+  const loadData = async () => {
+    setIsLoading(true);
+    const [personalData, favs] = await Promise.all([
+      getPersonalRecipes(),
+      getFavorites()
+    ]);
+    
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setRecipes(personalData || []);
+    setFavorites(favs);
+    setIsLoading(false);
+    
+    Animated.spring(fabScale, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+      delay: 300,
+    }).start();
+
+    if (!personalData || personalData.length === 0) {
+      Animated.timing(emptyFade, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+        delay: 400,
+      }).start();
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      setIsLoading(true);
-      getPersonalRecipes().then(data => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setRecipes(data || []);
-        setIsLoading(false);
-        
-        Animated.spring(fabScale, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-          delay: 300,
-        }).start();
-
-        if (!data || data.length === 0) {
-          Animated.timing(emptyFade, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-            delay: 400,
-          }).start();
-        }
-      });
+      loadData();
     }, [])
   );
 
@@ -78,6 +87,16 @@ export default function MyRecipesScreen() {
         },
       ]
     );
+  };
+
+  const toggleFavorite = async (id: string) => {
+    if (favorites.includes(id)) {
+      await removeFavorite(id);
+      setFavorites(prev => prev.filter(fid => fid !== id));
+    } else {
+      await addFavorite(id);
+      setFavorites(prev => [...prev, id]);
+    }
   };
 
   const openRecipe = (recipe: Recipe) => {
@@ -121,6 +140,8 @@ export default function MyRecipesScreen() {
               recipe={item as Recipe}
               onPress={openRecipe}
               onDelete={handleDelete}
+              onToggleFavorite={toggleFavorite}
+              isFavorited={favorites.includes((item as Recipe).id)}
               index={index}
             />
           )

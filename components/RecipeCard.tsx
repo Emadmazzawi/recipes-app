@@ -10,6 +10,8 @@ interface RecipeCardProps {
   recipe: Recipe;
   onPress: (recipe: Recipe) => void;
   onDelete?: (recipe: Recipe) => void;
+  onToggleFavorite?: (id: string) => void;
+  isFavorited?: boolean;
   categoryColor?: string;
   reason?: string;
   index?: number;
@@ -19,6 +21,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   recipe, 
   onPress, 
   onDelete, 
+  onToggleFavorite,
+  isFavorited = false,
   categoryColor, 
   reason,
   index = 0
@@ -26,6 +30,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
+  const favoriteScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -56,6 +61,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       toValue: 1,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handleFavorite = () => {
+    if (onToggleFavorite) {
+      Animated.sequence([
+        Animated.spring(favoriteScale, { toValue: 1.4, useNativeDriver: true, speed: 20 }),
+        Animated.spring(favoriteScale, { toValue: 1, useNativeDriver: true, speed: 20 }),
+      ]).start();
+      onToggleFavorite(recipe.id);
+    }
   };
 
   return (
@@ -98,6 +113,21 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                 <Ionicons name="time" size={14} color="#f5a623" />
                 <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} min</Text>
               </View>
+              {onToggleFavorite && (
+                <TouchableOpacity 
+                  onPress={handleFavorite} 
+                  style={styles.favoriteBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: favoriteScale }] }}>
+                    <Ionicons 
+                      name={isFavorited ? "heart" : "heart-outline"} 
+                      size={20} 
+                      color={isFavorited ? "#ef4444" : "#94a3b8"} 
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+              )}
               {onDelete && (
                 <TouchableOpacity 
                   onPress={() => onDelete(recipe)} 
@@ -212,6 +242,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   timeText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  favoriteBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 6,
+    borderRadius: 8,
+  },
   deleteBtn: { 
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     padding: 6,

@@ -15,7 +15,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BUILT_IN_RECIPES, CATEGORIES } from '../../constants/recipes';
 import { Recipe } from '../../types';
@@ -23,6 +23,7 @@ import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
 import { smartSearchRecipes } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -30,8 +31,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const { width } = Dimensions.get('window');
 
+const EXTENDED_CATEGORIES = ['All', 'Favorites', ...CATEGORIES.filter(c => c !== 'All')];
+
 const CATEGORY_ICONS: Record<string, any> = {
   All: 'apps',
+  Favorites: 'heart',
   Breakfast: 'cafe',
   Main: 'restaurant',
   Appetizer: 'fast-food',
@@ -42,6 +46,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   All: '#f5a623',
+  Favorites: '#ef4444',
   Breakfast: '#ff9800',
   Main: '#4ade80',
   Appetizer: '#2196f3',
@@ -57,6 +62,7 @@ export default function BuiltInRecipesScreen() {
   const [isSmartSearch, setIsSmartSearch] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const searchBarAnim = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
@@ -68,7 +74,29 @@ export default function BuiltInRecipesScreen() {
       useNativeDriver: true,
       delay: 100,
     }).start();
+    loadFavorites();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
+
+  const loadFavorites = async () => {
+    const favs = await getFavorites();
+    setFavorites(favs);
+  };
+
+  const toggleFavorite = async (id: string) => {
+    if (favorites.includes(id)) {
+      await removeFavorite(id);
+      setFavorites(prev => prev.filter(fid => fid !== id));
+    } else {
+      await addFavorite(id);
+      setFavorites(prev => [...prev, id]);
+    }
+  };
 
   useEffect(() => {
     if (isSmartSearch && search.trim().length > 2) {
@@ -96,8 +124,10 @@ export default function BuiltInRecipesScreen() {
   };
 
   const filtered = useMemo(() => {
-    const results = BUILT_IN_RECIPES.filter(r => {
-      const matchesCategory = selectedCategory === 'All' || r.category === selectedCategory;
+    return BUILT_IN_RECIPES.filter(r => {
+      const matchesCategory = 
+        selectedCategory === 'All' || 
+        (selectedCategory === 'Favorites' ? favorites.includes(r.id) : r.category === selectedCategory);
       
       if (isSmartSearch && search.trim().length > 2) {
         return !!smartResults[r.id] && matchesCategory;
@@ -106,8 +136,10 @@ export default function BuiltInRecipesScreen() {
       const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase());
       return matchesSearch && matchesCategory;
     });
+  }, [search, selectedCategory, isSmartSearch, smartResults, favorites]);
 
-    if (results.length === 0 && !isLoading) {
+  useEffect(() => {
+    if (filtered.length === 0 && !isLoading) {
       Animated.timing(emptyFade, {
         toValue: 1,
         duration: 400,
@@ -117,9 +149,7 @@ export default function BuiltInRecipesScreen() {
     } else {
       emptyFade.setValue(0);
     }
-
-    return results;
-  }, [search, selectedCategory, isSmartSearch, smartResults, isLoading]);
+  }, [filtered.length, isLoading]);
 
   const openRecipe = (recipe: Recipe) => {
     router.push({
@@ -202,7 +232,7 @@ export default function BuiltInRecipesScreen() {
       <View style={styles.categoryContainer}>
         <FlatList
           horizontal
-          data={CATEGORIES}
+          data={EXTENDED_CATEGORIES}
           keyExtractor={item => item}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 15 }}
@@ -212,20 +242,21 @@ export default function BuiltInRecipesScreen() {
               style={[
                 styles.categoryChip,
                 selectedCategory === item && { borderColor: getCategoryColor(item) },
-                selectedCategory === item && styles.categoryChipActive,
+                selectedCategory === item && (item === 'Favorites' ? styles.categoryChipActiveFavorite : styles.categoryChipActive),
               ]}
               onPress={() => handleCategoryPress(item)}
             >
               <Ionicons 
                 name={CATEGORY_ICONS[item] || 'restaurant'} 
                 size={16} 
-                color={selectedCategory === item ? '#fff' : '#64748b'} 
+                color={selectedCategory === item ? '#fff' : (item === 'Favorites' ? '#ef4444' : '#64748b')} 
                 style={{ marginRight: 6 }}
               />
               <Text
                 style={[
                   styles.categoryChipText,
                   selectedCategory === item && styles.categoryChipTextActive,
+                  selectedCategory !== item && item === 'Favorites' && { color: '#ef4444' }
                 ]}
               >
                 {item}
@@ -247,6 +278,8 @@ export default function BuiltInRecipesScreen() {
             <RecipeCard
               recipe={item as Recipe}
               onPress={openRecipe}
+              onToggleFavorite={toggleFavorite}
+              isFavorited={favorites.includes((item as Recipe).id)}
               categoryColor={getCategoryColor((item as Recipe).category)}
               reason={isSmartSearch ? smartResults[(item as Recipe).id] : undefined}
               index={index}
@@ -257,14 +290,26 @@ export default function BuiltInRecipesScreen() {
           !isLoading ? (
             <Animated.View style={[styles.empty, { opacity: emptyFade }]}>
               <View style={styles.emptyIconContainer}>
-                <Ionicons name="restaurant-outline" size={60} color="#1e293b" />
+                <Ionicons 
+                  name={selectedCategory === 'Favorites' ? "heart-outline" : "restaurant-outline"} 
+                  size={60} 
+                  color="#1e293b" 
+                />
                 <View style={styles.emptyIconOverlay}>
-                  <Ionicons name="search" size={24} color="#f5a623" />
+                  <Ionicons 
+                    name={selectedCategory === 'Favorites' ? "heart" : "search"} 
+                    size={24} 
+                    color={selectedCategory === 'Favorites' ? "#ef4444" : "#f5a623"} 
+                  />
                 </View>
               </View>
-              <Text style={styles.emptyTitle}>No Recipes Found</Text>
+              <Text style={styles.emptyTitle}>
+                {selectedCategory === 'Favorites' ? 'No Favorites Yet' : 'No Recipes Found'}
+              </Text>
               <Text style={styles.emptyText}>
-                We couldn't find any recipes matching your search. Try different keywords or browse all categories.
+                {selectedCategory === 'Favorites' 
+                  ? "Tap the heart icon on any recipe to save it to your favorites." 
+                  : "We couldn't find any recipes matching your search. Try different keywords or browse all categories."}
               </Text>
             </Animated.View>
           ) : null
@@ -356,6 +401,10 @@ const styles = StyleSheet.create({
   categoryChipActive: {
     backgroundColor: '#f5a623',
     borderColor: '#f5a623',
+  },
+  categoryChipActiveFavorite: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
   },
   categoryChipText: { color: '#64748b', fontSize: 14, fontWeight: '700' },
   categoryChipTextActive: { color: '#fff' },
