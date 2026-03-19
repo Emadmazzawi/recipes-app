@@ -59,9 +59,6 @@ Recipe Scaler is a modern, AI-powered mobile application built with Expo and Rea
    npm start
    ```
 
-## 📱 Screenshots
-
-*(Add screenshots of your app here to showcase the UI!)*
 
 ## 🔒 Security
 
