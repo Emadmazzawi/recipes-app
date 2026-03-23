@@ -7,15 +7,15 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { 
+        headerStyle: {
           backgroundColor: '#0a0a0f',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 0,
         },
         headerTintColor: '#f5a623',
-        headerTitleStyle: { 
-          fontWeight: '800', 
+        headerTitleStyle: {
+          fontWeight: '800',
           fontSize: 22,
           letterSpacing: 0.5,
         },
@@ -36,8 +36,8 @@ export default function TabsLayout() {
         ),
         tabBarActiveTintColor: '#f5a623',
         tabBarInactiveTintColor: '#555',
-        tabBarLabelStyle: { 
-          fontSize: 12, 
+        tabBarLabelStyle: {
+          fontSize: 12,
           fontWeight: '600',
           marginTop: 4,
         },
@@ -49,7 +49,7 @@ export default function TabsLayout() {
           title: 'Discover',
           tabBarLabel: 'Explore',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "compass" : "compass-outline"} color={color} size={size + 2} />
+            <Ionicons name={focused ? 'compass' : 'compass-outline'} color={color} size={size + 2} />
           ),
         }}
       />
@@ -59,7 +59,17 @@ export default function TabsLayout() {
           title: 'My Kitchen',
           tabBarLabel: 'Library',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "library" : "library-outline"} color={color} size={size + 2} />
+            <Ionicons name={focused ? 'library' : 'library-outline'} color={color} size={size + 2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="shopping"
+        options={{
+          title: 'Shopping List',
+          tabBarLabel: 'Shopping',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'cart' : 'cart-outline'} color={color} size={size + 2} />
           ),
         }}
       />
@@ -71,5 +81,5 @@ const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 0,
     backgroundColor: 'transparent',
-  }
+  },
 });

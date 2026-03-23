@@ -14,12 +14,20 @@ import {
   Platform,
   Animated,
   Vibration,
+  ImageBackground,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
-import { getPersonalRecipes, getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
+import {
+  getPersonalRecipes,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  addIngredientsToShoppingList,
+} from '../../lib/storage';
 import { scaleIngredients, formatAmount, calculateScaleFactor } from '../../lib/scaler';
 import { Recipe, Ingredient } from '../../types';
 import { IngredientRow } from '../../components/IngredientRow';
@@ -36,6 +44,13 @@ const NUTRITION_GOALS = {
   fat: 70,
 };
 
+const SCALE_PRESETS = [
+  { label: '½×', value: 0.5 },
+  { label: '1×', value: 1 },
+  { label: '2×', value: 2 },
+  { label: '3×', value: 3 },
+];
+
 export default function RecipeDetailScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
@@ -45,12 +60,12 @@ export default function RecipeDetailScreen() {
   const [scaleFactor, setScaleFactor] = useState(1);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
-  
+  const [addingToCart, setAddingToCart] = useState(false);
+
   const [baseNutrition, setBaseNutrition] = useState<NutritionData | null>(null);
   const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
   const [nutritionError, setNutritionError] = useState(false);
 
-  // Animated values
   const scaleBannerAnim = useRef(new Animated.Value(0)).current;
   const nutritionAnims = useRef<Animated.Value[]>([]);
   const instructionAnims = useRef<Animated.Value[]>([]);
@@ -74,16 +89,11 @@ export default function RecipeDetailScreen() {
       setRecipe(found);
       setScaledIngredients(found.ingredients);
       fetchTotalNutrition(found);
-      
-      // Initialize instruction animations
+
       if (found.steps) {
         instructionAnims.current = found.steps.map(() => new Animated.Value(0));
-        Animated.stagger(100, instructionAnims.current.map(anim => 
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          })
+        Animated.stagger(100, instructionAnims.current.map(anim =>
+          Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true })
         )).start();
       }
     }
@@ -109,9 +119,11 @@ export default function RecipeDetailScreen() {
     setIsLoadingNutrition(true);
     setNutritionError(false);
     try {
-      const promises = r.ingredients.map(ing => fetchNutritionForIngredient(ing.name, ing.amount, ing.unit));
+      const promises = r.ingredients.map(ing =>
+        fetchNutritionForIngredient(ing.name, ing.amount, ing.unit)
+      );
       const results = await Promise.all(promises);
-      
+
       const total = results.reduce<NutritionData>((acc, curr) => {
         const c = curr || { calories: 0, protein: 0, carbs: 0, fat: 0 };
         return {
@@ -131,19 +143,13 @@ export default function RecipeDetailScreen() {
           carbs: total.carbs / r.servings,
           fat: total.fat / r.servings,
         });
-        
-        // Initialize nutrition animations
+
         nutritionAnims.current = [0, 1, 2, 3].map(() => new Animated.Value(0));
-        Animated.stagger(100, nutritionAnims.current.map(anim => 
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          })
+        Animated.stagger(100, nutritionAnims.current.map(anim =>
+          Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true })
         )).start();
       }
     } catch (error) {
-      console.error('Failed to fetch nutrition:', error);
       setNutritionError(true);
     } finally {
       setIsLoadingNutrition(false);
@@ -154,14 +160,39 @@ export default function RecipeDetailScreen() {
     if (!recipe) return;
     const originalAmount = recipe.ingredients[index].amount;
     const factor = calculateScaleFactor(originalAmount, newAmount);
-    
+
     if (Math.abs(factor - scaleFactor) > 0.01) {
       Vibration.vibrate(5);
       triggerPulse();
     }
-    
     setScaleFactor(factor);
     setScaledIngredients(scaleIngredients(recipe.ingredients, factor));
+  };
+
+  const applyScalePreset = (factor: number) => {
+    if (!recipe) return;
+    setScaleFactor(factor);
+    setScaledIngredients(scaleIngredients(recipe.ingredients, factor));
+    setEditingIndex(null);
+    Keyboard.dismiss();
+    Vibration.vibrate(5);
+    triggerPulse();
+  };
+
+  const handleAddToShoppingList = async () => {
+    if (!recipe) return;
+    setAddingToCart(true);
+    try {
+      await addIngredientsToShoppingList(scaledIngredients, recipe.title);
+      Alert.alert(
+        'Added to Shopping List',
+        `${scaledIngredients.length} ingredient${scaledIngredients.length !== 1 ? 's' : ''} added${scaleFactor !== 1 ? ` (scaled ${formatAmount(scaleFactor)}×)` : ''}.`
+      );
+    } catch {
+      Alert.alert('Error', 'Could not add ingredients to shopping list.');
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   const triggerPulse = () => {
@@ -210,7 +241,6 @@ export default function RecipeDetailScreen() {
         </View>
       );
     }
-
     if (nutritionError) {
       return (
         <View style={styles.section}>
@@ -222,7 +252,6 @@ export default function RecipeDetailScreen() {
         </View>
       );
     }
-
     if (!baseNutrition) return null;
 
     const items = [
@@ -241,11 +270,11 @@ export default function RecipeDetailScreen() {
         <View style={styles.nutritionGrid}>
           {items.map((item, idx) => {
             const goal = (NUTRITION_GOALS as any)[item.key];
-            const progress = Math.min(item.val / (goal / 4), 1); // Simplified goal for one meal
-            
+            const progress = Math.min(item.val / (goal / 4), 1);
+
             return (
-              <Animated.View 
-                key={item.label} 
+              <Animated.View
+                key={item.label}
                 style={[
                   styles.nutritionCard,
                   {
@@ -265,7 +294,9 @@ export default function RecipeDetailScreen() {
                   </View>
                   <Text style={styles.nutritionLab}>{item.label}</Text>
                 </View>
-                <Text style={styles.nutritionVal}>{item.val}<Text style={styles.nutritionUnit}>{item.unit}</Text></Text>
+                <Text style={styles.nutritionVal}>
+                  {item.val}<Text style={styles.nutritionUnit}>{item.unit}</Text>
+                </Text>
                 <View style={styles.progressContainer}>
                   <View style={[styles.progressBar, { width: `${progress * 100}%`, backgroundColor: item.color }]} />
                 </View>
@@ -283,31 +314,58 @@ export default function RecipeDetailScreen() {
     extrapolate: 'clamp',
   });
 
+  const heroContent = (
+    <View style={styles.heroContent}>
+      <View style={styles.categoryBadge}>
+        <Text style={styles.categoryText}>{recipe.category}</Text>
+      </View>
+      <Text style={styles.heroTitle}>{recipe.title}</Text>
+
+      <View style={styles.heroStats}>
+        <View style={styles.heroStatItem}>
+          <Ionicons name="time-outline" size={15} color="#94a3b8" />
+          <Text style={styles.heroStatLabel}>Prep</Text>
+          <Text style={styles.heroStatText}>{recipe.prepTime} min</Text>
+        </View>
+        <View style={styles.heroStatDivider} />
+        <View style={styles.heroStatItem}>
+          <Ionicons name="flame-outline" size={15} color="#94a3b8" />
+          <Text style={styles.heroStatLabel}>Cook</Text>
+          <Text style={styles.heroStatText}>{recipe.cookTime} min</Text>
+        </View>
+        <View style={styles.heroStatDivider} />
+        <View style={styles.heroStatItem}>
+          <Ionicons name="people" size={15} color="#f5a623" />
+          <Animated.Text style={[styles.heroStatText, { transform: [{ scale: pulseAnim }] }]}>
+            {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} Servings
+          </Animated.Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      setEditingIndex(null);
-      Keyboard.dismiss();
-    }}>
+    <TouchableWithoutFeedback onPress={() => { setEditingIndex(null); Keyboard.dismiss(); }}>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        
+
         {/* Animated Sticky Header */}
         <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity }]}>
           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-          <SafeAreaView edges={['top']}>
+          <SafeAreaView edges={['top'] as any}>
             <View style={styles.stickyHeaderContent}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <Text style={styles.stickyHeaderTitle} numberOfLines={1}>{recipe.title}</Text>
               <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnSmall}>
-                <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={22} color={isFavorited ? "#ef4444" : "#fff"} />
+                <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#ef4444' : '#fff'} />
               </TouchableOpacity>
             </View>
           </SafeAreaView>
         </Animated.View>
 
-        {/* Initial Header Overlay (transparent background) */}
+        {/* Initial floating header buttons */}
         <Animated.View style={[styles.headerOverlay, { opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCircle}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
@@ -318,15 +376,23 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="refresh" size={20} color="#f5a623" />
               </TouchableOpacity>
             )}
+            {type === 'personal' && (
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
+                style={styles.editBtnCircle}
+              >
+                <Ionicons name="pencil" size={18} color="#a78bfa" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnCircle}>
-              <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={22} color={isFavorited ? "#ef4444" : "#fff"} />
+              <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#ef4444' : '#fff'} />
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        <Animated.ScrollView 
-          style={styles.scroll} 
-          showsVerticalScrollIndicator={false} 
+        <Animated.ScrollView
+          style={styles.scroll}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 60 }}
           onScroll={Animated.event(
@@ -337,35 +403,52 @@ export default function RecipeDetailScreen() {
         >
           {/* Hero Section */}
           <View style={styles.hero}>
-            <LinearGradient
-              colors={['#1e293b', '#0a0a0f']}
-              style={styles.heroBackground}
-            >
-              <Ionicons name="restaurant" size={120} color="rgba(245, 166, 35, 0.03)" style={styles.heroBgIcon} />
-              <View style={styles.heroContent}>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{recipe.category}</Text>
-                </View>
-                <Text style={styles.heroTitle}>{recipe.title}</Text>
-                
-                <View style={styles.heroStats}>
-                  <View style={styles.heroStatItem}>
-                    <Ionicons name="time" size={16} color="#f5a623" />
-                    <Text style={styles.heroStatText}>{recipe.prepTime + recipe.cookTime} min</Text>
-                  </View>
-                  <View style={styles.heroStatDivider} />
-                  <View style={styles.heroStatItem}>
-                    <Ionicons name="people" size={16} color="#f5a623" />
-                    <Animated.Text style={[styles.heroStatText, { transform: [{ scale: pulseAnim }] }]}>
-                      {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} Servings
-                    </Animated.Text>
-                  </View>
-                </View>
-              </View>
-            </LinearGradient>
+            {recipe.imageUri ? (
+              <ImageBackground
+                source={{ uri: recipe.imageUri }}
+                style={styles.heroBackground}
+                resizeMode="cover"
+              >
+                <LinearGradient
+                  colors={['transparent', 'rgba(10,10,15,0.5)', 'rgba(10,10,15,0.95)']}
+                  style={styles.heroImageOverlay}
+                >
+                  {heroContent}
+                </LinearGradient>
+              </ImageBackground>
+            ) : (
+              <LinearGradient colors={['#1e293b', '#0a0a0f']} style={styles.heroBackground}>
+                <Ionicons name="restaurant" size={120} color="rgba(245, 166, 35, 0.03)" style={styles.heroBgIcon} />
+                {heroContent}
+              </LinearGradient>
+            )}
           </View>
 
           <View style={styles.contentCard}>
+            {/* Action Buttons */}
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.actionChip}
+                onPress={handleAddToShoppingList}
+                disabled={addingToCart}
+              >
+                {addingToCart ? (
+                  <ActivityIndicator size="small" color="#60a5fa" />
+                ) : (
+                  <Ionicons name="cart-outline" size={16} color="#60a5fa" />
+                )}
+                <Text style={[styles.actionChipText, { color: '#60a5fa' }]}>Shopping</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionChip, styles.cookChip]}
+                onPress={() => router.push({ pathname: '/recipe/cook', params: { id, type } })}
+              >
+                <Ionicons name="flame-outline" size={16} color="#fff" />
+                <Text style={[styles.actionChipText, { color: '#fff' }]}>Cook Now</Text>
+              </TouchableOpacity>
+            </View>
+
             {recipe.description ? (
               <View style={styles.descSection}>
                 <Text style={styles.description}>{recipe.description}</Text>
@@ -373,7 +456,7 @@ export default function RecipeDetailScreen() {
             ) : null}
 
             {/* Scale Banner */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.scaleBanner,
                 {
@@ -394,9 +477,7 @@ export default function RecipeDetailScreen() {
                 style={styles.scaleBannerGradient}
               >
                 <Ionicons name="resize" size={18} color="#fff" />
-                <Text style={styles.scaleBannerText}>
-                  Scaled {formatAmount(scaleFactor)}x
-                </Text>
+                <Text style={styles.scaleBannerText}>Scaled {formatAmount(scaleFactor)}×</Text>
                 <TouchableOpacity onPress={resetScale} style={styles.resetScaleInner}>
                   <Text style={styles.resetScaleInnerText}>Reset</Text>
                 </TouchableOpacity>
@@ -413,8 +494,31 @@ export default function RecipeDetailScreen() {
                   <Text style={styles.sectionTitle}>Ingredients</Text>
                 </View>
                 {!isScaled && (
-                  <Text style={styles.hintText}>Tap amount to scale</Text>
+                  <Text style={styles.hintText}>Tap amount to edit</Text>
                 )}
+              </View>
+
+              {/* Quick Scale Presets */}
+              <View style={styles.scalePresetRow}>
+                {SCALE_PRESETS.map(preset => (
+                  <TouchableOpacity
+                    key={preset.label}
+                    style={[
+                      styles.presetBtn,
+                      Math.abs(scaleFactor - preset.value) < 0.01 && styles.presetBtnActive,
+                    ]}
+                    onPress={() => applyScalePreset(preset.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.presetBtnText,
+                        Math.abs(scaleFactor - preset.value) < 0.01 && styles.presetBtnTextActive,
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               <View style={styles.ingredientsList}>
@@ -447,8 +551,8 @@ export default function RecipeDetailScreen() {
                 </View>
                 <View style={styles.stepsList}>
                   {recipe.steps.map((step, index) => (
-                    <Animated.View 
-                      key={index} 
+                    <Animated.View
+                      key={index}
                       style={[
                         styles.stepRow,
                         {
@@ -463,10 +567,7 @@ export default function RecipeDetailScreen() {
                       ]}
                     >
                       <View style={styles.stepNumberContainer}>
-                        <LinearGradient
-                          colors={['#f5a623', '#d97706']}
-                          style={styles.stepNumber}
-                        >
+                        <LinearGradient colors={['#f5a623', '#d97706']} style={styles.stepNumber}>
                           <Text style={styles.stepNumberText}>{index + 1}</Text>
                         </LinearGradient>
                         {index < recipe.steps!.length - 1 && <View style={styles.stepLine} />}
@@ -489,7 +590,7 @@ export default function RecipeDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0f' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
+
   stickyHeader: {
     position: 'absolute',
     top: 0,
@@ -527,15 +628,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
   },
-  headerRightActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  headerRightActions: { flexDirection: 'row', gap: 10 },
   backBtnCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -543,7 +641,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -557,15 +655,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(245, 166, 35, 0.3)',
   },
+  editBtnCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(167,139,250,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)',
+  },
 
   scroll: { flex: 1 },
 
-  hero: {
-    height: height * 0.45,
-    width: '100%',
-  },
-  heroBackground: {
-    flex: 1,
+  hero: { height: height * 0.45, width: '100%' },
+  heroBackground: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 24, paddingBottom: 40 },
+  heroImageOverlay: {
+    position: 'absolute',
+    inset: 0,
     justifyContent: 'flex-end',
     paddingHorizontal: 24,
     paddingBottom: 40,
@@ -576,9 +683,7 @@ const styles = StyleSheet.create({
     right: -20,
     transform: [{ rotate: '-15deg' }],
   },
-  heroContent: {
-    zIndex: 2,
-  },
+  heroContent: { zIndex: 2 },
   categoryBadge: {
     backgroundColor: 'rgba(245, 166, 35, 0.2)',
     paddingHorizontal: 12,
@@ -596,40 +701,24 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: '900',
     marginBottom: 16,
     letterSpacing: -1.5,
-    lineHeight: 44,
+    lineHeight: 42,
   },
-  heroStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  heroStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroStatText: {
-    color: '#cbd5e1',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  heroStatDivider: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(245, 166, 35, 0.3)',
-  },
+  heroStats: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  heroStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  heroStatLabel: { color: '#64748b', fontSize: 12, fontWeight: '600' },
+  heroStatText: { color: '#cbd5e1', fontSize: 14, fontWeight: '700' },
+  heroStatDivider: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(245, 166, 35, 0.3)' },
 
   contentCard: {
     marginTop: -30,
     backgroundColor: '#0a0a0f',
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
-    paddingTop: 35,
+    paddingTop: 28,
     paddingBottom: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
@@ -638,21 +727,37 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
 
-  descSection: {
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
     paddingHorizontal: 24,
-    marginBottom: 28,
+    marginBottom: 20,
   },
-  description: {
-    color: '#94a3b8',
-    fontSize: 17,
-    lineHeight: 28,
-    fontWeight: '500',
-    fontStyle: 'italic',
+  actionChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#16213e',
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(96,165,250,0.2)',
   },
+  cookChip: {
+    backgroundColor: '#f5a623',
+    borderColor: '#f5a623',
+    flex: 1.2,
+  },
+  actionChipText: { fontSize: 14, fontWeight: '700' },
+
+  descSection: { paddingHorizontal: 24, marginBottom: 24 },
+  description: { color: '#94a3b8', fontSize: 16, lineHeight: 26, fontWeight: '500', fontStyle: 'italic' },
 
   scaleBanner: {
     marginHorizontal: 24,
-    marginBottom: 30,
+    marginBottom: 24,
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 8,
@@ -668,188 +773,110 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
   },
-  scaleBannerText: {
-    flex: 1,
-    color: '#fff',
-    fontWeight: '900',
-    fontSize: 16,
-  },
+  scaleBannerText: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800' },
   resetScaleInner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  resetScaleInnerText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  resetScaleInnerText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 36,
-  },
+  section: { paddingHorizontal: 24, marginBottom: 32 },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  titleWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titleIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: 18,
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sectionTitle: { 
-    color: '#fff', 
-    fontSize: 24, 
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  hintText: { 
-    color: '#64748b', 
-    fontSize: 13, 
-    fontWeight: '600',
-  },
+  sectionTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  hintText: { color: '#475569', fontSize: 12, fontWeight: '500' },
 
-  ingredientsList: {
+  scalePresetRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
     backgroundColor: '#16213e',
-    borderRadius: 24,
-    padding: 20,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
+  presetBtnActive: {
+    backgroundColor: '#f5a623',
+    borderColor: '#f5a623',
+  },
+  presetBtnText: { color: '#64748b', fontSize: 14, fontWeight: '800' },
+  presetBtnTextActive: { color: '#fff' },
 
-  stepsList: {
-    paddingLeft: 4,
+  ingredientsList: {},
+
+  nutritionSub: { color: '#64748b', fontSize: 13, fontWeight: '500' },
+  nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  nutritionCard: {
+    width: (width - 48 - 12) / 2,
+    backgroundColor: '#111827',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
+  nutritionCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  nutritionIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nutritionLab: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  nutritionVal: { color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: 8 },
+  nutritionUnit: { color: '#64748b', fontSize: 12, fontWeight: '500' },
+  progressContainer: {
+    height: 4,
+    backgroundColor: '#1e293b',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: { height: 4, borderRadius: 2 },
+  nutritionError: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, backgroundColor: '#111827', borderRadius: 14 },
+  nutritionErrorText: { color: '#64748b', fontSize: 14, flex: 1 },
+
+  stepsList: {},
   stepRow: {
     flexDirection: 'row',
-    marginBottom: 28,
+    gap: 16,
+    marginBottom: 24,
   },
-  stepNumberContainer: {
-    alignItems: 'center',
-    width: 36,
-    marginRight: 20,
-  },
+  stepNumberContainer: { alignItems: 'center' },
   stepNumber: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
-    elevation: 4,
-    shadowColor: '#f5a623',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
-  stepNumberText: { 
-    color: '#fff', 
-    fontWeight: '900', 
-    fontSize: 16 
-  },
+  stepNumberText: { color: '#fff', fontSize: 14, fontWeight: '900' },
   stepLine: {
     width: 2,
     flex: 1,
     backgroundColor: 'rgba(245, 166, 35, 0.15)',
     marginTop: 8,
-    marginBottom: -32,
+    minHeight: 24,
   },
-  stepTextContainer: {
-    flex: 1,
-    paddingTop: 6,
-  },
-  stepText: { 
-    color: '#cbd5e1', 
-    fontSize: 17, 
-    lineHeight: 28,
-    fontWeight: '500',
-  },
-
-  nutritionSub: {
-    color: '#64748b',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  nutritionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  nutritionCard: {
-    flex: 1,
-    minWidth: (width - 60) / 2,
-    backgroundColor: '#16213e',
-    padding: 18,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  nutritionCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  nutritionIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nutritionLab: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  nutritionVal: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '900',
-    marginBottom: 12,
-  },
-  nutritionUnit: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-    marginLeft: 2,
-  },
-  progressContainer: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  nutritionError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    padding: 20,
-    borderRadius: 20,
-    gap: 12,
-  },
-  nutritionErrorText: {
-    color: '#64748b',
-    fontSize: 15,
-    flex: 1,
-    fontWeight: '500',
-  },
+  stepTextContainer: { flex: 1, paddingTop: 8 },
+  stepText: { color: '#cbd5e1', fontSize: 15, lineHeight: 24, fontWeight: '500' },
 });

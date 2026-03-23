@@ -1,15 +1,14 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const { width } = Dimensions.get('window');
 
 interface RecipeCardProps {
   recipe: Recipe;
   onPress: (recipe: Recipe) => void;
   onDelete?: (recipe: Recipe) => void;
+  onEdit?: (recipe: Recipe) => void;
   onToggleFavorite?: (id: string) => void;
   isFavorited?: boolean;
   categoryColor?: string;
@@ -17,15 +16,16 @@ interface RecipeCardProps {
   index?: number;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ 
-  recipe, 
-  onPress, 
-  onDelete, 
+export const RecipeCard: React.FC<RecipeCardProps> = ({
+  recipe,
+  onPress,
+  onDelete,
+  onEdit,
   onToggleFavorite,
   isFavorited = false,
-  categoryColor, 
+  categoryColor,
   reason,
-  index = 0
+  index = 0,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -45,22 +45,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         duration: 500,
         delay: index * 100,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
   }, [index]);
 
   const handlePressIn = () => {
-    Animated.spring(scale, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
   };
 
   const handleFavorite = () => {
@@ -77,25 +71,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
     <Animated.View
       style={[
         styles.cardContainer,
-        {
-          opacity,
-          transform: [
-            { scale },
-            { translateY }
-          ]
-        }
+        { opacity, transform: [{ scale }, { translateY }] },
       ]}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => onPress(recipe)}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <LinearGradient
-          colors={['#16213e', '#0f172a']}
-          style={styles.card}
-        >
+        <LinearGradient colors={['#16213e', '#0f172a']} style={styles.card}>
           <View style={styles.cardHeader}>
             {categoryColor ? (
               <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '30' }]}>
@@ -107,41 +92,50 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             ) : (
               <View style={{ flex: 1 }} />
             )}
-            
+
             <View style={styles.headerRight}>
               <View style={styles.timeContainer}>
                 <Ionicons name="time" size={14} color="#f5a623" />
                 <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} min</Text>
               </View>
               {onToggleFavorite && (
-                <TouchableOpacity 
-                  onPress={handleFavorite} 
-                  style={styles.favoriteBtn}
+                <TouchableOpacity
+                  onPress={handleFavorite}
+                  style={styles.iconBtn}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Animated.View style={{ transform: [{ scale: favoriteScale }] }}>
-                    <Ionicons 
-                      name={isFavorited ? "heart" : "heart-outline"} 
-                      size={20} 
-                      color={isFavorited ? "#ef4444" : "#94a3b8"} 
+                    <Ionicons
+                      name={isFavorited ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={isFavorited ? '#ef4444' : '#94a3b8'}
                     />
                   </Animated.View>
                 </TouchableOpacity>
               )}
-              {onDelete && (
-                <TouchableOpacity 
-                  onPress={() => onDelete(recipe)} 
-                  style={styles.deleteBtn}
+              {onEdit && (
+                <TouchableOpacity
+                  onPress={() => onEdit(recipe)}
+                  style={[styles.iconBtn, styles.editBtn]}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="trash" size={18} color="#ef4444" />
+                  <Ionicons name="pencil" size={16} color="#a78bfa" />
+                </TouchableOpacity>
+              )}
+              {onDelete && (
+                <TouchableOpacity
+                  onPress={() => onDelete(recipe)}
+                  style={[styles.iconBtn, styles.deleteBtn]}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="trash" size={16} color="#ef4444" />
                 </TouchableOpacity>
               )}
             </View>
           </View>
-          
+
           <Text style={styles.cardTitle} numberOfLines={1}>{recipe.title}</Text>
-          
+
           {reason ? (
             <View style={styles.reasonContainer}>
               <LinearGradient
@@ -155,11 +149,13 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
               </LinearGradient>
             </View>
           ) : (
-            <Text style={styles.cardDesc} numberOfLines={2}>{recipe.description || 'No description provided for this delicious recipe.'}</Text>
+            <Text style={styles.cardDesc} numberOfLines={2}>
+              {recipe.description || 'No description provided for this delicious recipe.'}
+            </Text>
           )}
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.cardFooter}>
             <View style={styles.footerItem}>
               <View style={styles.iconCircle}>
@@ -173,7 +169,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
               </View>
               <Text style={styles.footerText}>{recipe.ingredients.length} Items</Text>
             </View>
-            {!onDelete && (
+            {!onDelete && !onEdit && (
               <View style={styles.arrowIcon}>
                 <Ionicons name="arrow-forward" size={16} color="#f5a623" />
               </View>
@@ -211,7 +207,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   categoryBadge: {
     flexDirection: 'row',
@@ -221,20 +217,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 6,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  categoryBadgeText: { 
-    fontSize: 11, 
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  categoryBadgeText: {
+    fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  timeContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 8,
@@ -242,32 +234,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   timeText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
-  favoriteBtn: {
+  iconBtn: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     padding: 6,
     borderRadius: 8,
   },
-  deleteBtn: { 
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    padding: 6,
-    borderRadius: 8,
-  },
-  cardTitle: { 
-    color: '#fff', 
-    fontSize: 22, 
-    fontWeight: '800', 
+  editBtn: { backgroundColor: 'rgba(167, 139, 250, 0.1)' },
+  deleteBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
-  cardDesc: { 
-    color: '#94a3b8', 
-    fontSize: 14, 
-    lineHeight: 20, 
-    marginBottom: 16,
-  },
-  reasonContainer: {
-    marginBottom: 16,
-  },
+  cardDesc: { color: '#94a3b8', fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  reasonContainer: { marginBottom: 16 },
   reasonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,12 +258,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  reasonText: { 
-    color: '#f5a623', 
-    fontSize: 13, 
-    fontWeight: '600',
-    flex: 1,
-  },
+  reasonText: { color: '#f5a623', fontSize: 13, fontWeight: '600', flex: 1 },
   divider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -292,11 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8 
-  },
+  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconCircle: {
     width: 24,
     height: 24,
@@ -313,5 +286,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
 });

@@ -41,6 +41,9 @@ const CATEGORY_ICONS: Record<string, any> = {
   Appetizer: 'fast-food',
   Dessert: 'ice-cream',
   Baking: 'pizza',
+  Soup: 'flame',
+  Salad: 'leaf',
+  Drinks: 'wine',
   Other: 'ellipsis-horizontal',
 };
 
@@ -52,6 +55,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   Appetizer: '#2196f3',
   Dessert: '#e91e63',
   Baking: '#9c27b0',
+  Soup: '#fb923c',
+  Salad: '#86efac',
+  Drinks: '#c4b5fd',
   Other: '#607d8b',
 };
 

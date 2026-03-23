@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
+  TextInput,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -30,22 +31,20 @@ export default function MyRecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
 
   const fabScale = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
 
   const loadData = async () => {
     setIsLoading(true);
-    const [personalData, favs] = await Promise.all([
-      getPersonalRecipes(),
-      getFavorites()
-    ]);
-    
+    const [personalData, favs] = await Promise.all([getPersonalRecipes(), getFavorites()]);
+
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setRecipes(personalData || []);
     setFavorites(favs);
     setIsLoading(false);
-    
+
     Animated.spring(fabScale, {
       toValue: 1,
       tension: 50,
@@ -72,8 +71,8 @@ export default function MyRecipesScreen() {
 
   const handleDelete = (recipe: Recipe) => {
     Alert.alert(
-      'Delete Recipe', 
-      `Are you sure you want to remove "${recipe.title}" from your collection?`, 
+      'Delete Recipe',
+      `Are you sure you want to remove "${recipe.title}" from your collection?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -87,6 +86,13 @@ export default function MyRecipesScreen() {
         },
       ]
     );
+  };
+
+  const handleEdit = (recipe: Recipe) => {
+    router.push({
+      pathname: '/recipe/new',
+      params: { editId: recipe.id },
+    });
   };
 
   const toggleFavorite = async (id: string) => {
@@ -106,33 +112,63 @@ export default function MyRecipesScreen() {
     });
   };
 
+  const filtered = search.trim()
+    ? recipes.filter(r =>
+        r.title.toLowerCase().includes(search.toLowerCase()) ||
+        r.category.toLowerCase().includes(search.toLowerCase()) ||
+        r.description?.toLowerCase().includes(search.toLowerCase())
+      )
+    : recipes;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <FlatList
-        data={(isLoading ? [1, 2, 3] : recipes) as any[]}
-        keyExtractor={(item, index) => (isLoading ? `skeleton-${index}` : (item as Recipe).id)}
+        data={(isLoading ? [1, 2, 3] : filtered) as any[]}
+        keyExtractor={(item, index) =>
+          isLoading ? `skeleton-${index}` : (item as Recipe).id
+        }
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: 10 }}
         ListHeaderComponent={
           !isLoading ? (
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>My Collection</Text>
-              <View style={styles.statsContainer}>
-                <View style={styles.statBadge}>
-                  <Text style={styles.statText}>
-                    {recipes.length} {recipes.length === 1 ? 'Recipe' : 'Recipes'}
-                  </Text>
+            <View>
+              <View style={styles.header}>
+                <Text style={styles.headerTitle}>My Collection</Text>
+                <View style={styles.statsContainer}>
+                  <View style={styles.statBadge}>
+                    <Text style={styles.statText}>
+                      {recipes.length} {recipes.length === 1 ? 'Recipe' : 'Recipes'}
+                    </Text>
+                  </View>
                 </View>
               </View>
+
+              {recipes.length > 0 && (
+                <View style={styles.searchContainer}>
+                  <Ionicons name="search" size={18} color="#64748b" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search your recipes..."
+                    placeholderTextColor="#475569"
+                    value={search}
+                    onChangeText={setSearch}
+                  />
+                  {search.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearch('')}>
+                      <Ionicons name="close-circle" size={18} color="#64748b" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
           ) : (
-             <View style={styles.header}>
-               <Text style={styles.headerTitle}>My Collection</Text>
-             </View>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>My Collection</Text>
+            </View>
           )
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) =>
           isLoading ? (
             <RecipeCardSkeleton />
           ) : (
@@ -140,59 +176,57 @@ export default function MyRecipesScreen() {
               recipe={item as Recipe}
               onPress={openRecipe}
               onDelete={handleDelete}
+              onEdit={handleEdit}
               onToggleFavorite={toggleFavorite}
               isFavorited={favorites.includes((item as Recipe).id)}
               index={index}
             />
           )
-        )}
+        }
         ListEmptyComponent={
           !isLoading ? (
-            <Animated.View style={[styles.empty, { opacity: emptyFade }]}>
-              <View style={styles.emptyIllustration}>
-                <LinearGradient
-                  colors={['#1e293b', '#0f172a']}
-                  style={styles.illustrationCircle}
-                >
-                  <Ionicons name="journal-outline" size={80} color="#334155" />
-                  <View style={styles.emptyPlusIcon}>
-                    <Ionicons name="add" size={24} color="#f5a623" />
-                  </View>
-                </LinearGradient>
+            search.trim() ? (
+              <View style={styles.noResults}>
+                <Ionicons name="search-outline" size={48} color="#334155" />
+                <Text style={styles.noResultsTitle}>No Matches</Text>
+                <Text style={styles.noResultsText}>
+                  No recipes found for "{search}". Try a different term.
+                </Text>
               </View>
-              <Text style={styles.emptyTitle}>Your Kitchen is Empty</Text>
-              <Text style={styles.emptySubtitle}>
-                Start building your personal cookbook by adding recipes manually or scanning them with AI.
-              </Text>
-              <TouchableOpacity 
-                style={styles.addFirstBtn}
-                onPress={() => router.push('/recipe/new')}
-              >
-                <Text style={styles.addFirstBtnText}>Create My First Recipe</Text>
-              </TouchableOpacity>
-            </Animated.View>
+            ) : (
+              <Animated.View style={[styles.empty, { opacity: emptyFade }]}>
+                <View style={styles.emptyIllustration}>
+                  <LinearGradient
+                    colors={['#1e293b', '#0f172a']}
+                    style={styles.illustrationCircle}
+                  >
+                    <Ionicons name="journal-outline" size={80} color="#334155" />
+                    <View style={styles.emptyPlusIcon}>
+                      <Ionicons name="add" size={24} color="#f5a623" />
+                    </View>
+                  </LinearGradient>
+                </View>
+                <Text style={styles.emptyTitle}>Your Kitchen is Empty</Text>
+                <Text style={styles.emptySubtitle}>
+                  Start building your personal cookbook by adding recipes manually or scanning them with AI.
+                </Text>
+                <TouchableOpacity
+                  style={styles.addFirstBtn}
+                  onPress={() => router.push('/recipe/new')}
+                >
+                  <Text style={styles.addFirstBtnText}>Create My First Recipe</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )
           ) : null
         }
       />
 
-      {/* FAB */}
       <Animated.View
-        style={[
-          styles.fabContainer, 
-          { 
-            opacity: fabScale,
-            transform: [{ scale: fabScale }] 
-          }
-        ]}
+        style={[styles.fabContainer, { opacity: fabScale, transform: [{ scale: fabScale }] }]}
       >
-        <TouchableOpacity
-          onPress={() => router.push('/recipe/new')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#f5a623', '#ea580c']}
-            style={styles.fab}
-          >
+        <TouchableOpacity onPress={() => router.push('/recipe/new')} activeOpacity={0.8}>
+          <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.fab}>
             <Ionicons name="add" size={32} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
@@ -203,7 +237,7 @@ export default function MyRecipesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0f' },
-  header: { 
+  header: {
     paddingVertical: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -215,9 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.5,
   },
-  statsContainer: {
-    flexDirection: 'row',
-  },
+  statsContainer: { flexDirection: 'row' },
   statBadge: {
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
     paddingHorizontal: 12,
@@ -232,14 +264,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  empty: { 
-    alignItems: 'center', 
-    marginTop: 60, 
-    paddingHorizontal: 40 
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  emptyIllustration: {
-    marginBottom: 30,
-  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '500' },
+
+  noResults: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
+  noResultsTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginTop: 16, marginBottom: 8 },
+  noResultsText: { color: '#64748b', fontSize: 15, textAlign: 'center', lineHeight: 22 },
+
+  empty: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
+  emptyIllustration: { marginBottom: 30 },
   illustrationCircle: {
     width: 160,
     height: 160,
@@ -262,16 +307,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#0a0a0f',
   },
-  emptyTitle: { 
-    color: '#fff', 
-    fontSize: 22, 
-    fontWeight: '700', 
-    marginBottom: 12 
-  },
-  emptySubtitle: { 
-    color: '#64748b', 
-    fontSize: 15, 
-    textAlign: 'center', 
+  emptyTitle: { color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 12 },
+  emptySubtitle: {
+    color: '#64748b',
+    fontSize: 15,
+    textAlign: 'center',
     lineHeight: 22,
     marginBottom: 30,
   },
@@ -283,11 +323,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f5a623',
   },
-  addFirstBtnText: {
-    color: '#f5a623',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  addFirstBtnText: { color: '#f5a623', fontSize: 16, fontWeight: '700' },
+
   fabContainer: {
     position: 'absolute',
     bottom: 100,

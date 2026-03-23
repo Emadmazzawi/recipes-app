@@ -16,20 +16,46 @@ An AI-powered mobile app for managing, scaling, and discovering recipes. Built w
 
 ```
 app/
-  _layout.tsx          # Root layout
+  _layout.tsx          # Root layout (Stack: tabs, auth, recipe/[id], recipe/new, recipe/cook)
   auth/                # Authentication screens (login/signup)
-  (tabs)/              # Main tab navigation (Home, My Recipes)
-  recipe/              # Recipe detail ([id].tsx) and create (new.tsx)
+  (tabs)/              # Three-tab navigation: Explore, Library, Shopping
+    index.tsx          # Explore/Discover built-in recipes with AI smart search
+    my-recipes.tsx     # Personal recipe library with search + edit
+    shopping.tsx       # Shopping list with checkbox, group-by-recipe
+    _layout.tsx        # Tab bar config (Explore, Library, Shopping)
+  recipe/
+    [id].tsx           # Recipe detail: photo hero, scale presets, cook mode, shopping list
+    new.tsx            # Create/Edit recipe form with photo picker + AI scan
+    cook.tsx           # Step-by-step cooking mode with per-step timer
 assets/                # Icons, splash screen, favicon
-components/            # Reusable UI components (RecipeCard, IngredientRow, etc.)
-constants/             # Demo recipe data
+components/
+  RecipeCard.tsx       # Card with onPress, onDelete, onEdit, onToggleFavorite
+  IngredientRow.tsx    # Editable ingredient with inline amount editing
+  Skeleton.tsx         # Loading skeleton components
+constants/             # Demo recipe data + categories
 lib/
-  gemini.ts            # AI functions (scan, search, import from URL)
+  gemini.ts            # AI: scanIngredientsFromImage, smartSearchRecipes, importRecipeFromUrl
   supabase.ts          # Supabase client + auth
   scaler.ts            # Recipe scaling utilities
-  nutrition.ts         # Nutritional estimation
-types/                 # TypeScript interfaces
+  nutrition.ts         # USDA FDC nutritional estimation with in-memory cache
+  storage.ts           # AsyncStorage + Supabase CRUD: recipes, favorites, shopping list
+types/                 # TypeScript interfaces (Recipe, Ingredient, ShoppingItem, Unit)
 ```
+
+## Key Features
+
+- **Recipe Library**: Browse built-in recipes + personal saved recipes
+- **AI Ingredient Scan**: Take a photo of ingredients, Gemini extracts the list
+- **AI Smart Search**: Natural language search across recipes using Gemini
+- **URL Import**: Paste a recipe URL → Gemini extracts structured recipe data (fetches page HTML first)
+- **Recipe Scaling**: Tap any ingredient to adjust amount; ½×/1×/2×/3× quick presets
+- **Photo Support**: Add a photo to personal recipes (shows as hero background in detail view)
+- **Edit Mode**: Tap the pencil icon on any personal recipe card to re-open the create form pre-filled
+- **Shopping List**: Add all (scaled) ingredients from a recipe to a persistent checklist tab
+- **Cook Mode**: Fullscreen step-by-step view with per-step countdown timer
+- **Nutrition**: Per-serving nutrition estimates via USDA FDC API with caching
+- **Favorites**: Heart any recipe for quick access on the Explore tab
+- **Guest Mode**: Works fully without Supabase keys using local AsyncStorage
 
 ## Environment Variables
 
@@ -48,9 +74,9 @@ Without Supabase keys, auth and cloud sync are disabled but the app still runs w
   - Hot Module Reloading (HMR) is enabled — no restart needed for code changes
   - QR code available via Expo Go for testing on physical devices
 
-## Development Notes
+## Important Notes
 
-- Never edit `package.json` directly — use the package management tools
-- Never run `npx expo start` directly in shell — use the workflow tools
-- The Expo web bundler (Metro) serves the app at port 5000
-- `react-dom` and `react-native-web` are required for web mode
+- Do NOT edit package.json directly; use the package management tools
+- Do NOT run `npx expo start` in the shell; use the workflow restart tool
+- `useNativeDriver: true` warnings on web are expected and harmless
+- Supabase config warnings are expected when keys are not configured

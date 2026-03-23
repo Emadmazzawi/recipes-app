@@ -10,13 +10,23 @@ export interface Recipe {
   title: string;
   description: string;
   servings: number;
-  prepTime: number; // minutes
-  cookTime: number; // minutes
+  prepTime: number;
+  cookTime: number;
   category: string;
   ingredients: Ingredient[];
   steps: string[];
   isBuiltIn: boolean;
   createdAt: string;
+  imageUri?: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  amount: number;
+  unit: string;
+  checked: boolean;
+  recipeTitle?: string;
 }
 
 export type Unit =
