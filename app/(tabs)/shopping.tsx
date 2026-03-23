@@ -78,26 +78,28 @@ export default function ShoppingScreen() {
   const totalCount = items.length;
 
   const renderItem = ({ item }: { item: ShoppingItem }) => (
-    <TouchableOpacity
-      style={[styles.itemRow, item.checked && styles.itemRowChecked]}
-      onPress={() => handleToggle(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
-        {item.checked && <Ionicons name="checkmark" size={14} color="#fff" />}
-      </View>
+    <View style={[styles.itemRow, item.checked && styles.itemRowChecked]}>
+      <TouchableOpacity
+        style={styles.itemToggleArea}
+        onPress={() => handleToggle(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+          {item.checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+        </View>
 
-      <View style={styles.itemContent}>
-        <Text style={[styles.itemName, item.checked && styles.itemNameChecked]}>
-          {item.name}
-        </Text>
-        <Text style={styles.itemMeta}>
-          {item.amount} {item.unit}
-          {item.recipeTitle ? (
-            <Text style={styles.itemRecipe}>  ·  {item.recipeTitle}</Text>
-          ) : null}
-        </Text>
-      </View>
+        <View style={styles.itemContent}>
+          <Text style={[styles.itemName, item.checked && styles.itemNameChecked]}>
+            {item.name}
+          </Text>
+          <Text style={styles.itemMeta}>
+            {item.amount} {item.unit}
+            {item.recipeTitle ? (
+              <Text style={styles.itemRecipe}>  ·  {item.recipeTitle}</Text>
+            ) : null}
+          </Text>
+        </View>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => handleRemove(item.id)}
@@ -106,7 +108,7 @@ export default function ShoppingScreen() {
       >
         <Ionicons name="close" size={18} color="#475569" />
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
