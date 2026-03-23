@@ -222,10 +222,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#16213e',
     borderRadius: 16,
-    padding: 16,
+    paddingVertical: 4,
+    paddingRight: 12,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+  },
+  itemToggleArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     gap: 14,
   },
   itemRowChecked: {
