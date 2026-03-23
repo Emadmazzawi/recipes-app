@@ -42,9 +42,7 @@ export default function RootLayout() {
     // Small delay to ensure the navigator is ready before replacing
     const timeout = setTimeout(() => {
       try {
-        if (!session && !inAuthGroup) {
-          router.replace('/auth');
-        } else if (session && inAuthGroup) {
+        if (session && inAuthGroup) {
           router.replace('/(tabs)');
         }
       } catch (e) {

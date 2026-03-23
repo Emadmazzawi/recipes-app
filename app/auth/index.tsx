@@ -141,6 +141,14 @@ export default function AuthScreen() {
                 </Text>
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.guestButton}
+              onPress={() => router.replace('/(tabs)')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.guestText}>Continue as Guest</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -255,5 +263,15 @@ const styles = StyleSheet.create({
   switchTextBold: {
     color: '#f5a623',
     fontWeight: '800',
+  },
+  guestButton: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  guestText: {
+    color: '#64748b',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });
