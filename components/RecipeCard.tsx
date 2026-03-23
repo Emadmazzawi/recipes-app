@@ -184,18 +184,18 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 const styles = StyleSheet.create({
   cardContainer: {
     marginBottom: 16,
-    borderRadius: 20,
+    borderRadius: 22,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 10,
   },
   card: {
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(245, 166, 35, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
     overflow: 'hidden',
   },
   cardHeader: {
@@ -244,11 +244,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: '#fff',
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: 'Inter_800ExtraBold',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
-  cardDesc: { color: '#94a3b8', fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  cardDesc: { color: '#94a3b8', fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, marginBottom: 16 },
   reasonContainer: { marginBottom: 16 },
   reasonGradient: {
     flexDirection: 'row',

@@ -276,7 +276,7 @@ export default function BuiltInRecipesScreen() {
       <FlatList
         data={(isLoading ? [1, 2, 3] : filtered) as any[]}
         keyExtractor={(item, index) => (isLoading ? `skeleton-${index}` : (item as Recipe).id)}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, paddingTop: 5 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 140, paddingTop: 5 }}
         renderItem={({ item, index }) => (
           isLoading ? (
             <RecipeCardSkeleton />
@@ -333,16 +333,18 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   greeting: {
-    color: '#94a3b8',
-    fontSize: 16,
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    color: '#64748b',
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   titleText: {
     color: '#fff',
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontSize: 34,
+    fontFamily: 'Inter_900Black',
+    letterSpacing: -1,
+    lineHeight: 40,
   },
   searchBarWrapper: {
     flexDirection: 'row',

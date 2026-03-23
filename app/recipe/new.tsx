@@ -43,7 +43,7 @@ function generateId() {
 
 export default function NewRecipeScreen() {
   const router = useRouter();
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const { editId, importUrl } = useLocalSearchParams<{ editId?: string; importUrl?: string }>();
   const isEditing = !!editId;
 
   const [title, setTitle] = useState('');
@@ -76,11 +76,44 @@ export default function NewRecipeScreen() {
   useEffect(() => {
     if (isEditing) {
       loadExistingRecipe();
+    } else if (importUrl) {
+      setTempUrl(importUrl);
+      setTimeout(() => handleImportFromParam(importUrl), 200);
     }
     Animated.stagger(100, formAnims.map(anim =>
       Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true })
     )).start();
   }, []);
+
+  const handleImportFromParam = async (url: string) => {
+    setImporting(true);
+    try {
+      const data = await importRecipeFromUrl(url);
+      if (data) {
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setServings(data.servings?.toString() || '4');
+        setPrepTime(data.prepTime?.toString() || '0');
+        setCookTime(data.cookTime?.toString() || '0');
+        setCategory(data.category || 'Other');
+        if (data.ingredients && Array.isArray(data.ingredients)) {
+          setIngredients(data.ingredients.map((ing: any) => ({
+            id: generateId(),
+            name: ing.name || 'Unknown',
+            amount: ing.amount || 0,
+            unit: (ing.unit || 'piece') as any,
+          })));
+        }
+        if (data.steps && Array.isArray(data.steps)) {
+          setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
+        }
+      }
+    } catch (err) {
+      Alert.alert('Import Failed', 'Could not extract recipe from that URL. Try pasting the recipe manually.');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const loadExistingRecipe = async () => {
     try {

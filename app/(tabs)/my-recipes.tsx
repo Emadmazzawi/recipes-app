@@ -13,6 +13,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import { Recipe } from '../../types';
 import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -112,6 +114,8 @@ export default function MyRecipesScreen() {
     });
   };
 
+  const [importUrl, setImportUrl] = useState('');
+
   const filtered = search.trim()
     ? recipes.filter(r =>
         r.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -119,6 +123,13 @@ export default function MyRecipesScreen() {
         r.description?.toLowerCase().includes(search.toLowerCase())
       )
     : recipes;
+
+  const handleUrlImport = () => {
+    const trimmed = importUrl.trim();
+    if (!trimmed) return;
+    setImportUrl('');
+    router.push({ pathname: '/recipe/new', params: { importUrl: trimmed } });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -129,7 +140,7 @@ export default function MyRecipesScreen() {
         keyExtractor={(item, index) =>
           isLoading ? `skeleton-${index}` : (item as Recipe).id
         }
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150, paddingTop: 10 }}
         ListHeaderComponent={
           !isLoading ? (
             <View>
@@ -143,6 +154,49 @@ export default function MyRecipesScreen() {
                   </View>
                 </View>
               </View>
+
+              {/* URL Extractor */}
+              <BlurView intensity={40} tint="dark" style={styles.extractorCard}>
+                <View style={styles.extractorInner}>
+                  <View style={styles.extractorHeader}>
+                    <LinearGradient
+                      colors={['#f5a623', '#ea580c']}
+                      style={styles.extractorIcon}
+                    >
+                      <Ionicons name="link" size={14} color="#fff" />
+                    </LinearGradient>
+                    <View>
+                      <Text style={styles.extractorTitle}>Import from URL</Text>
+                      <Text style={styles.extractorSub}>Paste a recipe link to auto-fill</Text>
+                    </View>
+                  </View>
+                  <View style={styles.extractorRow}>
+                    <TextInput
+                      style={styles.extractorInput}
+                      placeholder="https://www.example.com/recipe..."
+                      placeholderTextColor="#334155"
+                      value={importUrl}
+                      onChangeText={setImportUrl}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                      returnKeyType="go"
+                      onSubmitEditing={handleUrlImport}
+                    />
+                    <TouchableOpacity onPress={handleUrlImport} activeOpacity={0.85}>
+                      <LinearGradient
+                        colors={importUrl.trim() ? ['#f5a623', '#ea580c'] : ['#1e293b', '#1e293b']}
+                        style={styles.extractorBtn}
+                      >
+                        <Ionicons
+                          name="arrow-forward"
+                          size={18}
+                          color={importUrl.trim() ? '#fff' : '#334155'}
+                        />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </BlurView>
 
               {recipes.length > 0 && (
                 <View style={styles.searchContainer}>
@@ -246,7 +300,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#fff',
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: 'Inter_800ExtraBold',
     letterSpacing: -0.5,
   },
   statsContainer: { flexDirection: 'row' },
@@ -263,6 +317,65 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+
+  extractorCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(245,166,35,0.15)',
+    marginBottom: 16,
+  },
+  extractorInner: {
+    padding: 16,
+  },
+  extractorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  extractorIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  extractorTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 1,
+  },
+  extractorSub: {
+    color: '#475569',
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+  },
+  extractorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  extractorInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    paddingHorizontal: 12,
+    height: 42,
+    color: '#fff',
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+  },
+  extractorBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   searchContainer: {

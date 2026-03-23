@@ -3,9 +3,17 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from '@expo-google-fonts/inter';
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
@@ -15,8 +23,16 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
 
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
   useEffect(() => {
-    // Listen for auth changes
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setInitialized(true);
@@ -36,10 +52,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!initialized) return;
-
     const inAuthGroup = segments[0] === 'auth';
-
-    // Small delay to ensure the navigator is ready before replacing
     const timeout = setTimeout(() => {
       try {
         if (session && inAuthGroup) {
@@ -49,11 +62,10 @@ export default function RootLayout() {
         console.error('Navigation error:', e);
       }
     }, 100);
-
     return () => clearTimeout(timeout);
   }, [session, segments, initialized]);
 
-  if (!initialized) {
+  if (!initialized || !fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#f5a623" />
