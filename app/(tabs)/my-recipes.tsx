@@ -123,7 +123,7 @@ export default function MyRecipesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <FlatList
         data={(isLoading ? [1, 2, 3] : filtered) as any[]}

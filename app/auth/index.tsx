@@ -52,7 +52,7 @@ export default function AuthScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Warm glow orbs */}
       <View style={styles.orb1} />
@@ -88,7 +88,7 @@ export default function AuthScreen() {
           </View>
 
           {/* Frosted glass form */}
-          <BlurView intensity={50} tint="dark" style={styles.glassForm}>
+          <BlurView intensity={50} tint="light" style={styles.glassForm}>
             <View style={styles.formInner}>
               <Text style={styles.formTitle}>
                 {isSignUp ? 'Create Account' : 'Welcome back'}
@@ -187,34 +187,34 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   orb1: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: COLORS.primary,
-    opacity: 0.2,
-    top: -80,
-    left: -60,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: COLORS.primaryLight,
+    opacity: 0.15,
+    top: -100,
+    left: -80,
     transform: [{ scaleX: 1.3 }],
   },
   orb2: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: COLORS.primaryLight,
-    opacity: 0.12,
-    top: 50,
-    right: -50,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: COLORS.primary,
+    opacity: 0.1,
+    top: 60,
+    right: -60,
   },
   orb3: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: '#c45a1a',
-    opacity: 0.1,
-    bottom: 140,
-    left: 40,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#ff8c42',
+    opacity: 0.12,
+    bottom: 120,
+    left: 20,
   },
   scrollContent: {
     flexGrow: 1,

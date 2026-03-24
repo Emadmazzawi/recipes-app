@@ -90,7 +90,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: '#0f0a06',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   }

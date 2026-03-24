@@ -185,7 +185,7 @@ export default function BuiltInRecipesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' } as any]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={[styles.header, isRTL && styles.headerRTL]}>

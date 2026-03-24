@@ -7,8 +7,8 @@ import { useLanguage } from '../../contexts/LanguageContext';
 function FloatingTabBarBackground() {
   return (
     <BlurView
-      intensity={90}
-      tint="dark"
+      intensity={80}
+      tint="light"
       style={[StyleSheet.absoluteFill, styles.blurInner]}
     />
   );
@@ -39,8 +39,8 @@ export default function TabsLayout() {
           shadowRadius: 20,
         },
         tabBarBackground: () => <FloatingTabBarBackground />,
-        tabBarActiveTintColor: '#e8722a',
-        tabBarInactiveTintColor: '#4a3426',
+        tabBarActiveTintColor: '#e8411a',
+        tabBarInactiveTintColor: '#c9a090',
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Inter_600SemiBold',
