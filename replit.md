@@ -1,82 +1,87 @@
-# Recipe Scaler
+# Recipe Scaler — AI-Powered Recipe App
 
-An AI-powered mobile app for managing, scaling, and discovering recipes. Built with Expo/React Native and runs on web via Expo Web.
-
-## Tech Stack
-
-- **Framework**: Expo (v54) / React Native 0.81.5
-- **Language**: TypeScript
-- **AI Engine**: Google Gemini AI (`gemini-1.5-flash`) for OCR, smart search, and URL import
-- **Backend/Auth**: Supabase (`@supabase/supabase-js`)
-- **Navigation**: Expo Router (file-based routing)
-- **Bundler**: Metro (default for React Native/Expo)
-- **Package Manager**: npm
-
-## Project Layout
-
-```
-app/
-  _layout.tsx          # Root layout (Stack: tabs, auth, recipe/[id], recipe/new, recipe/cook)
-  auth/                # Authentication screens (login/signup)
-  (tabs)/              # Three-tab navigation: Explore, Library, Shopping
-    index.tsx          # Explore/Discover built-in recipes with AI smart search
-    my-recipes.tsx     # Personal recipe library with search + edit
-    shopping.tsx       # Shopping list with checkbox, group-by-recipe
-    _layout.tsx        # Tab bar config (Explore, Library, Shopping)
-  recipe/
-    [id].tsx           # Recipe detail: photo hero, scale presets, cook mode, shopping list
-    new.tsx            # Create/Edit recipe form with photo picker + AI scan
-    cook.tsx           # Step-by-step cooking mode with per-step timer
-assets/                # Icons, splash screen, favicon
-components/
-  RecipeCard.tsx       # Card with onPress, onDelete, onEdit, onToggleFavorite
-  IngredientRow.tsx    # Editable ingredient with inline amount editing
-  Skeleton.tsx         # Loading skeleton components
-constants/             # Demo recipe data + categories
-lib/
-  gemini.ts            # AI: scanIngredientsFromImage, smartSearchRecipes, importRecipeFromUrl
-  supabase.ts          # Supabase client + auth
-  scaler.ts            # Recipe scaling utilities
-  nutrition.ts         # USDA FDC nutritional estimation with in-memory cache
-  storage.ts           # AsyncStorage + Supabase CRUD: recipes, favorites, shopping list
-types/                 # TypeScript interfaces (Recipe, Ingredient, ShoppingItem, Unit)
-```
+## Project Overview
+Expo/React Native mobile app for managing, scaling, and discovering recipes. Runs in web preview mode on port 5000 via Expo web bundler. Published to Replit hosting.
 
 ## Key Features
+- AI smart search via Google Gemini
+- OCR ingredient scanning
+- URL recipe import (paste any recipe URL to auto-fill)
+- Recipe scaling (½×, 1×, 2×, 3×)
+- Nutrition info per ingredient
+- Cook mode (step-by-step with timers)
+- Shopping list with check-off
+- Cloud sync via Supabase (auth + storage)
+- Offline local storage fallback (AsyncStorage)
+- Language support: English, Hebrew (עברית), Arabic (العربية) with RTL text
 
-- **Recipe Library**: Browse built-in recipes + personal saved recipes
-- **AI Ingredient Scan**: Take a photo of ingredients, Gemini extracts the list
-- **AI Smart Search**: Natural language search across recipes using Gemini
-- **URL Import**: Paste a recipe URL → Gemini extracts structured recipe data (fetches page HTML first)
-- **Recipe Scaling**: Tap any ingredient to adjust amount; ½×/1×/2×/3× quick presets
-- **Photo Support**: Add a photo to personal recipes (shows as hero background in detail view)
-- **Edit Mode**: Tap the pencil icon on any personal recipe card to re-open the create form pre-filled
-- **Shopping List**: Add all (scaled) ingredients from a recipe to a persistent checklist tab
-- **Cook Mode**: Fullscreen step-by-step view with per-step countdown timer
-- **Nutrition**: Per-serving nutrition estimates via USDA FDC API with caching
-- **Favorites**: Heart any recipe for quick access on the Explore tab
-- **Guest Mode**: Works fully without Supabase keys using local AsyncStorage
+## Tech Stack
+- Expo (web mode, port 5000)
+- React Native + Expo Router (file-based routing)
+- TypeScript
+- Supabase (auth + cloud sync)
+- Google Gemini AI
+- LinearGradient, BlurView, Ionicons
+- Inter fonts (@expo-google-fonts/inter)
+
+## Architecture
+
+### Key Files
+- `app/_layout.tsx` — Root layout with auth session management, font loading, LanguageProvider
+- `app/(tabs)/_layout.tsx` — Floating pill-shaped tab bar with blur
+- `app/(tabs)/index.tsx` — Explore screen: built-in recipes, AI smart search, gear settings, language selection
+- `app/(tabs)/my-recipes.tsx` — Library screen: personal recipes with URL import card
+- `app/(tabs)/shopping.tsx` — Shopping list with check-off and progress bar
+- `app/recipe/[id].tsx` — Recipe detail with scaling, nutrition, cook mode
+- `app/recipe/new.tsx` — Create/edit recipe with AI assist + URL import
+- `app/recipe/cook.tsx` — Cook mode with step-by-step timer
+- `app/auth/index.tsx` — Auth screen (sign in / sign up)
+
+### Components
+- `components/RecipeCard.tsx` — Recipe card with warm gradient, favorite/edit/delete actions
+- `components/IngredientRow.tsx` — Inline-editable ingredient row
+- `components/Skeleton.tsx` — Loading skeletons
+
+### Constants & Config
+- `constants/theme.ts` — Warm dark color palette (COLORS object)
+- `constants/recipes.ts` — Built-in recipe data + categories
+- `lib/i18n.ts` — Translations for EN/HE/AR
+- `contexts/LanguageContext.tsx` — Language state + RTL detection, useLanguage() hook
+- `lib/gemini.ts` — Gemini AI integration (smart search, OCR, URL import)
+- `lib/supabase.ts` — Supabase client
+- `lib/storage.ts` — AsyncStorage + Supabase sync (recipes, favorites, shopping list)
+- `lib/scaler.ts` — Ingredient amount scaling utilities
+- `lib/nutrition.ts` — Nutrition fetching per ingredient
+
+## Color Palette (Warm Dark Theme)
+All colors in `constants/theme.ts`. Key values:
+- `COLORS.bg` = `#0f0a06` (very dark warm brown, replaces cold navy)
+- `COLORS.surface` = `#1e1409` (warm dark)
+- `COLORS.card` = `#231711` (card background)
+- `COLORS.primary` = `#e8722a` (warm terracotta orange)
+- `COLORS.primaryLight` = `#f5a623` (amber highlight)
+- `COLORS.textPrimary` = `#fdf4e7` (warm cream)
+- `COLORS.textSecondary` = `#c4a07a` (warm tan)
+- `COLORS.textMuted` = `#7a5c40` (warm brown)
+
+## Navigation
+- `/` → Explore (built-in recipes)
+- `/my-recipes` → Library (personal recipes)
+- `/shopping` → Shopping list
+- `/recipe/[id]?type=builtin|personal` → Recipe detail
+- `/recipe/new` → New recipe (optionally with `editId` or `importUrl` params)
+- `/recipe/cook?id=...&type=...` → Cook mode
+- `/auth` → Sign in / Sign up
 
 ## Environment Variables
-
-The app requires these secrets (set via Replit Secrets):
-
-- `EXPO_PUBLIC_GEMINI_API_KEY` — Google Gemini API key for AI features
+- `EXPO_PUBLIC_GEMINI_API_KEY` — Google Gemini API key
 - `EXPO_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Supabase anonymous key
-
-Without Supabase keys, auth and cloud sync are disabled but the app still runs with local/demo data.
-
-## Workflow
-
-- **Start application**: `npx expo start --web --port 5000`
-  - Runs the Expo dev server in web mode on port 5000
-  - Hot Module Reloading (HMR) is enabled — no restart needed for code changes
-  - QR code available via Expo Go for testing on physical devices
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 
 ## Important Notes
-
-- Do NOT edit package.json directly; use the package management tools
-- Do NOT run `npx expo start` in the shell; use the workflow restart tool
-- `useNativeDriver: true` warnings on web are expected and harmless
-- Supabase config warnings are expected when keys are not configured
+- Never edit `package.json` directly; use npm install with `--legacy-peer-deps`
+- Never run `npx expo start` in the shell (workflow manages it)
+- Shopping list stored under AsyncStorage key `shopping_list`
+- Language preference stored under AsyncStorage key `app_language`
+- URL import: navigate to `/recipe/new` with `params: { importUrl: url }`
+- Edit mode: navigate to `/recipe/new` with `params: { editId: recipe.id }`

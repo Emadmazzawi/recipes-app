@@ -14,6 +14,8 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,8 @@ import { RecipeCardSkeleton } from '../../components/Skeleton';
 import { smartSearchRecipes } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { COLORS } from '../../constants/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -48,27 +52,29 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  All: '#f5a623',
+  All: '#e8722a',
   Favorites: '#ef4444',
-  Breakfast: '#ff9800',
+  Breakfast: '#f59e0b',
   Main: '#4ade80',
-  Appetizer: '#2196f3',
-  Dessert: '#e91e63',
-  Baking: '#9c27b0',
+  Appetizer: '#60a5fa',
+  Dessert: '#f472b6',
+  Baking: '#c084fc',
   Soup: '#fb923c',
   Salad: '#86efac',
-  Drinks: '#c4b5fd',
-  Other: '#607d8b',
+  Drinks: '#a78bfa',
+  Other: '#94a3b8',
 };
 
 export default function BuiltInRecipesScreen() {
   const router = useRouter();
+  const { t, language, setLanguage, isRTL } = useLanguage();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isSmartSearch, setIsSmartSearch] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
 
   const searchBarAnim = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
@@ -131,14 +137,14 @@ export default function BuiltInRecipesScreen() {
 
   const filtered = useMemo(() => {
     return BUILT_IN_RECIPES.filter(r => {
-      const matchesCategory = 
-        selectedCategory === 'All' || 
+      const matchesCategory =
+        selectedCategory === 'All' ||
         (selectedCategory === 'Favorites' ? favorites.includes(r.id) : r.category === selectedCategory);
-      
+
       if (isSmartSearch && search.trim().length > 2) {
         return !!smartResults[r.id] && matchesCategory;
       }
-      
+
       const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase());
       return matchesSearch && matchesCategory;
     });
@@ -164,27 +170,40 @@ export default function BuiltInRecipesScreen() {
     });
   };
 
-  const getCategoryColor = (cat: string) => {
-    return CATEGORY_COLORS[cat] || '#607d8b';
-  };
+  const getCategoryColor = (cat: string) => CATEGORY_COLORS[cat] || '#94a3b8';
 
   const handleCategoryPress = (category: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedCategory(category);
   };
 
+  const LANG_OPTIONS: { code: 'en' | 'he' | 'ar'; flag: string }[] = [
+    { code: 'en', flag: '🇺🇸' },
+    { code: 'he', flag: '🇮🇱' },
+    { code: 'ar', flag: '🇸🇦' },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' } as any]}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>What are we</Text>
-        <Text style={styles.titleText}>Cooking today?</Text>
+
+      {/* Header */}
+      <View style={[styles.header, isRTL && styles.headerRTL]}>
+        <View>
+          <Text style={[styles.greeting, isRTL && styles.textRTL]}>{t.explore.greeting}</Text>
+          <Text style={[styles.titleText, isRTL && styles.textRTL]}>{t.explore.title}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowSettings(true)}
+          style={styles.gearBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="settings-outline" size={22} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Search bar */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.searchBarWrapper,
           {
@@ -199,36 +218,36 @@ export default function BuiltInRecipesScreen() {
         ]}
       >
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#f5a623" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={COLORS.primary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
-            placeholder={isSmartSearch ? "Ask Gemini (e.g. 'something spicy')..." : "Search recipes..."}
-            placeholderTextColor="#64748b"
+            style={[styles.searchInput, isRTL && styles.textRTL]}
+            placeholder={isSmartSearch ? t.explore.aiPlaceholder : t.explore.searchPlaceholder}
+            placeholderTextColor={COLORS.textFaint}
             value={search}
             onChangeText={setSearch}
           />
-          {isLoading && <ActivityIndicator size="small" color="#f5a623" style={{ marginRight: 8 }} />}
+          {isLoading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />}
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={18} color="#64748b" />
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.smartToggle, isSmartSearch && styles.smartToggleActive]}
+          style={styles.smartToggle}
           onPress={() => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setIsSmartSearch(!isSmartSearch);
           }}
         >
           <LinearGradient
-            colors={isSmartSearch ? ['#f5a623', '#d97706'] : ['#1e293b', '#0f172a']}
+            colors={isSmartSearch ? [COLORS.primary, '#c45a1a'] : [COLORS.surface, COLORS.surfaceDeep]}
             style={styles.smartToggleGradient}
           >
-            <Ionicons 
-              name={isSmartSearch ? "sparkles" : "sparkles-outline"} 
-              size={20} 
-              color={isSmartSearch ? "#fff" : "#f5a623"} 
+            <Ionicons
+              name={isSmartSearch ? "sparkles" : "sparkles-outline"}
+              size={20}
+              color={isSmartSearch ? "#fff" : COLORS.primary}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -252,10 +271,10 @@ export default function BuiltInRecipesScreen() {
               ]}
               onPress={() => handleCategoryPress(item)}
             >
-              <Ionicons 
-                name={CATEGORY_ICONS[item] || 'restaurant'} 
-                size={16} 
-                color={selectedCategory === item ? '#fff' : (item === 'Favorites' ? '#ef4444' : '#64748b')} 
+              <Ionicons
+                name={CATEGORY_ICONS[item] || 'restaurant'}
+                size={15}
+                color={selectedCategory === item ? '#fff' : (item === 'Favorites' ? '#ef4444' : COLORS.textMuted)}
                 style={{ marginRight: 6 }}
               />
               <Text
@@ -265,7 +284,7 @@ export default function BuiltInRecipesScreen() {
                   selectedCategory !== item && item === 'Favorites' && { color: '#ef4444' }
                 ]}
               >
-                {item}
+                {item === 'All' ? t.explore.all : item === 'Favorites' ? t.explore.favorites : item}
               </Text>
             </TouchableOpacity>
           )}
@@ -296,56 +315,130 @@ export default function BuiltInRecipesScreen() {
           !isLoading ? (
             <Animated.View style={[styles.empty, { opacity: emptyFade }]}>
               <View style={styles.emptyIconContainer}>
-                <Ionicons 
-                  name={selectedCategory === 'Favorites' ? "heart-outline" : "restaurant-outline"} 
-                  size={60} 
-                  color="#1e293b" 
+                <Ionicons
+                  name={selectedCategory === 'Favorites' ? "heart-outline" : "restaurant-outline"}
+                  size={60}
+                  color={COLORS.surface}
                 />
                 <View style={styles.emptyIconOverlay}>
-                  <Ionicons 
-                    name={selectedCategory === 'Favorites' ? "heart" : "search"} 
-                    size={24} 
-                    color={selectedCategory === 'Favorites' ? "#ef4444" : "#f5a623"} 
+                  <Ionicons
+                    name={selectedCategory === 'Favorites' ? "heart" : "search"}
+                    size={24}
+                    color={selectedCategory === 'Favorites' ? "#ef4444" : COLORS.primary}
                   />
                 </View>
               </View>
-              <Text style={styles.emptyTitle}>
-                {selectedCategory === 'Favorites' ? 'No Favorites Yet' : 'No Recipes Found'}
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>
+                {selectedCategory === 'Favorites' ? t.explore.noFavoritesTitle : t.explore.noResultsTitle}
               </Text>
-              <Text style={styles.emptyText}>
-                {selectedCategory === 'Favorites' 
-                  ? "Tap the heart icon on any recipe to save it to your favorites." 
-                  : "We couldn't find any recipes matching your search. Try different keywords or browse all categories."}
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
+                {selectedCategory === 'Favorites' ? t.explore.noFavoritesText : t.explore.noResultsText}
               </Text>
             </Animated.View>
           ) : null
         }
       />
+
+      {/* Settings Modal */}
+      <Modal
+        visible={showSettings}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSettings(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettings(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.settingsSheet}>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{t.settings.title}</Text>
+              <TouchableOpacity onPress={() => setShowSettings(false)} style={styles.sheetCloseBtn}>
+                <Ionicons name="close" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Language Section */}
+            <Text style={styles.sectionLabel}>{t.settings.language}</Text>
+            {LANG_OPTIONS.map(({ code, flag }) => (
+              <TouchableOpacity
+                key={code}
+                style={[styles.langOption, language === code && styles.langOptionActive]}
+                onPress={() => setLanguage(code)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.langFlag}>{flag}</Text>
+                <Text style={[styles.langName, language === code && styles.langNameActive]}>
+                  {t.languages[code]}
+                </Text>
+                {language === code && (
+                  <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} style={{ marginLeft: 'auto' }} />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              style={styles.doneBtn}
+              onPress={() => setShowSettings(false)}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, '#c45a1a']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.doneBtnGradient}
+              >
+                <Text style={styles.doneBtnText}>{t.settings.done}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingTop: 15,
     paddingBottom: 10,
   },
+  headerRTL: { flexDirection: 'row-reverse' },
+  gearBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: 4,
+  },
   greeting: {
-    color: '#64748b',
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-    letterSpacing: 1.2,
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
+    marginBottom: 2,
   },
   titleText: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 34,
     fontFamily: 'Inter_900Black',
     letterSpacing: -1,
     lineHeight: 40,
   },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' } as any,
   searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -357,30 +450,27 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 166, 35, 0.1)',
+    borderColor: COLORS.border,
     height: 54,
   },
   searchIcon: { marginRight: 10 },
   searchInput: {
     flex: 1,
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
   },
-  clearBtn: {
-    padding: 4,
-  },
+  clearBtn: { padding: 4 },
   smartToggle: {
     borderRadius: 16,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#f5a623',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
   smartToggleGradient: {
@@ -389,35 +479,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  smartToggleActive: {
-    shadowOpacity: 0.4,
-  },
-  categoryContainer: {
-    height: 75,
-  },
+  categoryContainer: { height: 75 },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 14,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: COLORS.borderSubtle,
   },
   categoryChipActive: {
-    backgroundColor: '#f5a623',
-    borderColor: '#f5a623',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   categoryChipActiveFavorite: {
     backgroundColor: '#ef4444',
     borderColor: '#ef4444',
   },
-  categoryChipText: { color: '#64748b', fontSize: 14, fontWeight: '700' },
+  categoryChipText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
   categoryChipTextActive: { color: '#fff' },
-  empty: { 
-    alignItems: 'center', 
+  empty: {
+    alignItems: 'center',
     justifyContent: 'center',
     marginTop: 60,
     paddingHorizontal: 40,
@@ -430,22 +519,122 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -5,
     right: -5,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     padding: 6,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#0a0a0f',
+    borderColor: COLORS.bg,
   },
   emptyTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     marginBottom: 10,
   },
-  emptyText: { 
-    color: '#64748b', 
-    fontSize: 15, 
+  emptyText: {
+    color: COLORS.textMuted,
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  settingsSheet: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderBottomWidth: 0,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.textFaint,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  sheetTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontFamily: 'Inter_800ExtraBold',
+    letterSpacing: -0.5,
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    gap: 12,
+  },
+  langOptionActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryTint,
+  },
+  langFlag: { fontSize: 22 },
+  langName: {
+    color: COLORS.textSecondary,
+    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
+  },
+  langNameActive: {
+    color: COLORS.textPrimary,
+    fontFamily: 'Inter_700Bold',
+  },
+  doneBtn: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 24,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+  doneBtnGradient: {
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.3,
   },
 });

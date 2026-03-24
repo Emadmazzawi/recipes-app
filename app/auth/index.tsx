@@ -11,15 +11,13 @@ import {
   ScrollView,
   StatusBar,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-
-const { width, height } = Dimensions.get('window');
+import { COLORS } from '../../constants/theme';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
@@ -34,7 +32,6 @@ export default function AuthScreen() {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
-
     setLoading(true);
     try {
       if (isSignUp) {
@@ -57,7 +54,7 @@ export default function AuthScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Background glow orbs */}
+      {/* Warm glow orbs */}
       <View style={styles.orb1} />
       <View style={styles.orb2} />
       <View style={styles.orb3} />
@@ -75,7 +72,7 @@ export default function AuthScreen() {
           <View style={styles.hero}>
             <View style={styles.logoWrap}>
               <LinearGradient
-                colors={['#ff9a3c', '#ea580c']}
+                colors={[COLORS.primaryLight, COLORS.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
@@ -91,21 +88,20 @@ export default function AuthScreen() {
           </View>
 
           {/* Frosted glass form */}
-          <BlurView intensity={60} tint="dark" style={styles.glassForm}>
+          <BlurView intensity={50} tint="dark" style={styles.glassForm}>
             <View style={styles.formInner}>
               <Text style={styles.formTitle}>
                 {isSignUp ? 'Create Account' : 'Welcome back'}
               </Text>
 
-              {/* Email field */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabel}>Email Address</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="mail-outline" size={18} color="#64748b" style={styles.inputIcon} />
+                  <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="you@example.com"
-                    placeholderTextColor="#3d4f68"
+                    placeholderTextColor={COLORS.textFaint}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -114,15 +110,14 @@ export default function AuthScreen() {
                 </View>
               </View>
 
-              {/* Password field */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabel}>Password</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={18} color="#64748b" style={styles.inputIcon} />
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="••••••••"
-                    placeholderTextColor="#3d4f68"
+                    placeholderTextColor={COLORS.textFaint}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -131,13 +126,12 @@ export default function AuthScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={18}
-                      color="#64748b"
+                      color={COLORS.textMuted}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* CTA button */}
               <TouchableOpacity
                 onPress={handleAuth}
                 disabled={loading}
@@ -145,7 +139,7 @@ export default function AuthScreen() {
                 style={styles.ctaWrap}
               >
                 <LinearGradient
-                  colors={['#ff9a3c', '#ea580c']}
+                  colors={[COLORS.primaryLight, COLORS.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.ctaGradient}
@@ -160,7 +154,6 @@ export default function AuthScreen() {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Switch mode */}
               <TouchableOpacity
                 onPress={() => setIsSignUp(!isSignUp)}
                 activeOpacity={0.7}
@@ -176,13 +169,12 @@ export default function AuthScreen() {
             </View>
           </BlurView>
 
-          {/* Guest mode */}
           <TouchableOpacity
             style={styles.guestRow}
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.7}
           >
-            <Ionicons name="person-outline" size={14} color="#475569" style={{ marginRight: 6 }} />
+            <Ionicons name="person-outline" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
             <Text style={styles.guestText}>Continue as Guest</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -192,58 +184,46 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#060810',
-  },
-
+  container: { flex: 1, backgroundColor: COLORS.bg },
   orb1: {
     position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: '#ea580c',
-    opacity: 0.18,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: COLORS.primary,
+    opacity: 0.2,
     top: -80,
-    left: -80,
+    left: -60,
     transform: [{ scaleX: 1.3 }],
   },
   orb2: {
     position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: '#f5a623',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: COLORS.primaryLight,
     opacity: 0.12,
-    top: 60,
-    right: -60,
+    top: 50,
+    right: -50,
   },
   orb3: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#dc2626',
-    opacity: 0.08,
-    bottom: 120,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: '#c45a1a',
+    opacity: 0.1,
+    bottom: 140,
     left: 40,
   },
-
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 22,
     paddingVertical: 60,
   },
-
-  hero: {
-    alignItems: 'center',
-    marginBottom: 36,
-  },
-  logoWrap: {
-    position: 'relative',
-    marginBottom: 20,
-  },
+  hero: { alignItems: 'center', marginBottom: 36 },
+  logoWrap: { position: 'relative', marginBottom: 20 },
   logoGradient: {
     width: 76,
     height: 76,
@@ -256,55 +236,49 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 22,
-    backgroundColor: '#ea580c',
-    opacity: 0.35,
-    top: 6,
+    backgroundColor: COLORS.primary,
+    opacity: 0.3,
+    top: 8,
     left: 0,
     zIndex: -1,
-    transform: [{ scaleX: 1.1 }, { scaleY: 1.3 }],
+    transform: [{ scaleX: 1.1 }, { scaleY: 1.4 }],
   },
   appName: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 34,
     fontFamily: 'Inter_900Black',
     letterSpacing: -1.2,
     marginBottom: 8,
   },
   tagline: {
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 20,
   },
-
   glassForm: {
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: COLORS.border,
     marginBottom: 20,
   },
-  formInner: {
-    padding: 24,
-  },
+  formInner: { padding: 24 },
   formTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 22,
     fontFamily: 'Inter_800ExtraBold',
     marginBottom: 24,
     letterSpacing: -0.5,
   },
-
-  fieldGroup: {
-    marginBottom: 18,
-  },
+  fieldGroup: { marginBottom: 18 },
   fieldLabel: {
-    color: '#94a3b8',
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 11,
     fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 2,
@@ -312,58 +286,48 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.primaryTintDark,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: COLORS.border,
     paddingHorizontal: 14,
     height: 52,
   },
   inputIcon: { marginRight: 10 },
   input: {
     flex: 1,
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
   },
   eyeBtn: { padding: 4 },
-
   ctaWrap: {
     borderRadius: 16,
     overflow: 'hidden',
     marginTop: 8,
-    shadowColor: '#ea580c',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
   },
-  ctaGradient: {
-    height: 54,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  ctaGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
   ctaText: {
     color: '#fff',
     fontSize: 17,
     fontFamily: 'Inter_800ExtraBold',
     letterSpacing: 0.2,
   },
-
-  switchRow: {
-    alignItems: 'center',
-    marginTop: 22,
-  },
+  switchRow: { alignItems: 'center', marginTop: 22 },
   switchText: {
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
   },
   switchHighlight: {
-    color: '#f5a623',
+    color: COLORS.primary,
     fontFamily: 'Inter_700Bold',
   },
-
   guestRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -371,7 +335,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   guestText: {
-    color: '#475569',
+    color: COLORS.textMuted,
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
     textDecorationLine: 'underline',

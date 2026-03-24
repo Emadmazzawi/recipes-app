@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS } from '../constants/theme';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -37,13 +38,13 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       Animated.timing(opacity, {
         toValue: 1,
         duration: 500,
-        delay: index * 100,
+        delay: index * 80,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
         duration: 500,
-        delay: index * 100,
+        delay: index * 80,
         useNativeDriver: true,
       }),
     ]).start();
@@ -80,10 +81,10 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <LinearGradient colors={['#16213e', '#0f172a']} style={styles.card}>
+        <LinearGradient colors={[COLORS.card, COLORS.cardDeep]} style={styles.card}>
           <View style={styles.cardHeader}>
             {categoryColor ? (
-              <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '30' }]}>
+              <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '25' }]}>
                 <View style={[styles.dot, { backgroundColor: categoryColor }]} />
                 <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
                   {recipe.category}
@@ -95,7 +96,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
             <View style={styles.headerRight}>
               <View style={styles.timeContainer}>
-                <Ionicons name="time" size={14} color="#f5a623" />
+                <Ionicons name="time-outline" size={13} color={COLORS.primary} />
                 <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} min</Text>
               </View>
               {onToggleFavorite && (
@@ -107,8 +108,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                   <Animated.View style={{ transform: [{ scale: favoriteScale }] }}>
                     <Ionicons
                       name={isFavorited ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={isFavorited ? '#ef4444' : '#94a3b8'}
+                      size={19}
+                      color={isFavorited ? '#ef4444' : COLORS.textMuted}
                     />
                   </Animated.View>
                 </TouchableOpacity>
@@ -119,7 +120,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                   style={[styles.iconBtn, styles.editBtn]}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="pencil" size={16} color="#a78bfa" />
+                  <Ionicons name="pencil" size={15} color={COLORS.purple} />
                 </TouchableOpacity>
               )}
               {onDelete && (
@@ -128,7 +129,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                   style={[styles.iconBtn, styles.deleteBtn]}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="trash" size={16} color="#ef4444" />
+                  <Ionicons name="trash" size={15} color={COLORS.error} />
                 </TouchableOpacity>
               )}
             </View>
@@ -139,18 +140,18 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           {reason ? (
             <View style={styles.reasonContainer}>
               <LinearGradient
-                colors={['rgba(245, 166, 35, 0.15)', 'rgba(245, 166, 35, 0.05)']}
+                colors={[COLORS.primaryTint, COLORS.primaryTintDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.reasonGradient}
               >
-                <Ionicons name="sparkles" size={14} color="#f5a623" />
+                <Ionicons name="sparkles" size={13} color={COLORS.primary} />
                 <Text style={styles.reasonText} numberOfLines={1}>{reason}</Text>
               </LinearGradient>
             </View>
           ) : (
             <Text style={styles.cardDesc} numberOfLines={2}>
-              {recipe.description || 'No description provided for this delicious recipe.'}
+              {recipe.description || 'A delicious recipe waiting to be discovered.'}
             </Text>
           )}
 
@@ -159,19 +160,19 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           <View style={styles.cardFooter}>
             <View style={styles.footerItem}>
               <View style={styles.iconCircle}>
-                <Ionicons name="people" size={12} color="#f5a623" />
+                <Ionicons name="people" size={12} color={COLORS.primary} />
               </View>
               <Text style={styles.footerText}>{recipe.servings} Servings</Text>
             </View>
             <View style={styles.footerItem}>
               <View style={styles.iconCircle}>
-                <Ionicons name="restaurant" size={12} color="#f5a623" />
+                <Ionicons name="restaurant" size={12} color={COLORS.primary} />
               </View>
               <Text style={styles.footerText}>{recipe.ingredients.length} Items</Text>
             </View>
             {!onDelete && !onEdit && (
               <View style={styles.arrowIcon}>
-                <Ionicons name="arrow-forward" size={16} color="#f5a623" />
+                <Ionicons name="arrow-forward" size={15} color={COLORS.primary} />
               </View>
             )}
           </View>
@@ -183,107 +184,126 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
 const styles = StyleSheet.create({
   cardContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
     borderRadius: 22,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
     elevation: 10,
   },
   card: {
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderColor: COLORS.borderSubtle,
     overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: 10,
+    gap: 5,
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 5, height: 5, borderRadius: 3 },
   categoryBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 5,
+    backgroundColor: COLORS.primaryTintDark,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  timeText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  timeText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
   iconBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.borderSubtle,
     padding: 6,
     borderRadius: 8,
   },
-  editBtn: { backgroundColor: 'rgba(167, 139, 250, 0.1)' },
-  deleteBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+  editBtn: { backgroundColor: COLORS.purpleTint },
+  deleteBtn: { backgroundColor: COLORS.errorTint },
   cardTitle: {
-    color: '#fff',
-    fontSize: 22,
+    color: COLORS.textPrimary,
+    fontSize: 21,
     fontFamily: 'Inter_800ExtraBold',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 7,
+    letterSpacing: -0.4,
   },
-  cardDesc: { color: '#94a3b8', fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, marginBottom: 16 },
-  reasonContainer: { marginBottom: 16 },
+  cardDesc: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+  reasonContainer: { marginBottom: 14 },
   reasonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
-  reasonText: { color: '#f5a623', fontSize: 13, fontWeight: '600', flex: 1 },
+  reasonText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    flex: 1,
+  },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: 16,
+    backgroundColor: COLORS.borderSubtle,
+    marginBottom: 14,
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   iconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.primaryTintDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footerText: { color: '#cbd5e1', fontSize: 13, fontWeight: '500' },
+  footerText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
+  },
   arrowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.primaryTintDark,
     alignItems: 'center',
     justifyContent: 'center',
   },

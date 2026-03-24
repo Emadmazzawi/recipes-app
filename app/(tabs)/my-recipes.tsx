@@ -13,7 +13,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +22,8 @@ import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { COLORS } from '../../constants/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -30,10 +31,12 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function MyRecipesScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  const [importUrl, setImportUrl] = useState('');
 
   const fabScale = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
@@ -41,7 +44,6 @@ export default function MyRecipesScreen() {
   const loadData = async () => {
     setIsLoading(true);
     const [personalData, favs] = await Promise.all([getPersonalRecipes(), getFavorites()]);
-
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setRecipes(personalData || []);
     setFavorites(favs);
@@ -65,20 +67,16 @@ export default function MyRecipesScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const handleDelete = (recipe: Recipe) => {
     Alert.alert(
       'Delete Recipe',
-      `Are you sure you want to remove "${recipe.title}" from your collection?`,
+      `Remove "${recipe.title}" from your collection?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.common.delete,
           style: 'destructive',
           onPress: async () => {
             await deletePersonalRecipe(recipe.id);
@@ -91,10 +89,7 @@ export default function MyRecipesScreen() {
   };
 
   const handleEdit = (recipe: Recipe) => {
-    router.push({
-      pathname: '/recipe/new',
-      params: { editId: recipe.id },
-    });
+    router.push({ pathname: '/recipe/new', params: { editId: recipe.id } });
   };
 
   const toggleFavorite = async (id: string) => {
@@ -108,13 +103,15 @@ export default function MyRecipesScreen() {
   };
 
   const openRecipe = (recipe: Recipe) => {
-    router.push({
-      pathname: '/recipe/[id]',
-      params: { id: recipe.id, type: 'personal' },
-    });
+    router.push({ pathname: '/recipe/[id]', params: { id: recipe.id, type: 'personal' } });
   };
 
-  const [importUrl, setImportUrl] = useState('');
+  const handleUrlImport = () => {
+    const trimmed = importUrl.trim();
+    if (!trimmed) return;
+    setImportUrl('');
+    router.push({ pathname: '/recipe/new', params: { importUrl: trimmed } });
+  };
 
   const filtered = search.trim()
     ? recipes.filter(r =>
@@ -124,57 +121,46 @@ export default function MyRecipesScreen() {
       )
     : recipes;
 
-  const handleUrlImport = () => {
-    const trimmed = importUrl.trim();
-    if (!trimmed) return;
-    setImportUrl('');
-    router.push({ pathname: '/recipe/new', params: { importUrl: trimmed } });
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       <FlatList
         data={(isLoading ? [1, 2, 3] : filtered) as any[]}
-        keyExtractor={(item, index) =>
-          isLoading ? `skeleton-${index}` : (item as Recipe).id
-        }
+        keyExtractor={(item, index) => isLoading ? `skeleton-${index}` : (item as Recipe).id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150, paddingTop: 10 }}
         ListHeaderComponent={
           !isLoading ? (
             <View>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Collection</Text>
-                <View style={styles.statsContainer}>
-                  <View style={styles.statBadge}>
-                    <Text style={styles.statText}>
-                      {recipes.length} {recipes.length === 1 ? 'Recipe' : 'Recipes'}
-                    </Text>
-                  </View>
+                <Text style={styles.headerTitle}>{t.library.title}</Text>
+                <View style={styles.statBadge}>
+                  <Text style={styles.statText}>
+                    {recipes.length} {recipes.length === 1 ? t.library.recipe : t.library.recipes}
+                  </Text>
                 </View>
               </View>
 
               {/* URL Extractor */}
-              <BlurView intensity={40} tint="dark" style={styles.extractorCard}>
+              <BlurView intensity={30} tint="dark" style={styles.extractorCard}>
                 <View style={styles.extractorInner}>
                   <View style={styles.extractorHeader}>
                     <LinearGradient
-                      colors={['#f5a623', '#ea580c']}
+                      colors={[COLORS.primaryLight, COLORS.primary]}
                       style={styles.extractorIcon}
                     >
                       <Ionicons name="link" size={14} color="#fff" />
                     </LinearGradient>
                     <View>
-                      <Text style={styles.extractorTitle}>Import from URL</Text>
-                      <Text style={styles.extractorSub}>Paste a recipe link to auto-fill</Text>
+                      <Text style={styles.extractorTitle}>{t.library.importTitle}</Text>
+                      <Text style={styles.extractorSub}>{t.library.importSub}</Text>
                     </View>
                   </View>
                   <View style={styles.extractorRow}>
                     <TextInput
                       style={styles.extractorInput}
                       placeholder="https://www.example.com/recipe..."
-                      placeholderTextColor="#334155"
+                      placeholderTextColor={COLORS.textFaint}
                       value={importUrl}
                       onChangeText={setImportUrl}
                       autoCapitalize="none"
@@ -184,13 +170,13 @@ export default function MyRecipesScreen() {
                     />
                     <TouchableOpacity onPress={handleUrlImport} activeOpacity={0.85}>
                       <LinearGradient
-                        colors={importUrl.trim() ? ['#f5a623', '#ea580c'] : ['#1e293b', '#1e293b']}
+                        colors={importUrl.trim() ? [COLORS.primaryLight, COLORS.primary] : [COLORS.surface, COLORS.surface]}
                         style={styles.extractorBtn}
                       >
                         <Ionicons
                           name="arrow-forward"
                           size={18}
-                          color={importUrl.trim() ? '#fff' : '#334155'}
+                          color={importUrl.trim() ? '#fff' : COLORS.textFaint}
                         />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -200,17 +186,17 @@ export default function MyRecipesScreen() {
 
               {recipes.length > 0 && (
                 <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={18} color="#64748b" style={styles.searchIcon} />
+                  <Ionicons name="search" size={17} color={COLORS.textMuted} style={styles.searchIcon} />
                   <TextInput
                     style={styles.searchInput}
-                    placeholder="Search your recipes..."
-                    placeholderTextColor="#475569"
+                    placeholder={t.library.searchPlaceholder}
+                    placeholderTextColor={COLORS.textFaint}
                     value={search}
                     onChangeText={setSearch}
                   />
                   {search.length > 0 && (
                     <TouchableOpacity onPress={() => setSearch('')}>
-                      <Ionicons name="close-circle" size={18} color="#64748b" />
+                      <Ionicons name="close-circle" size={17} color={COLORS.textMuted} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -218,7 +204,7 @@ export default function MyRecipesScreen() {
             </View>
           ) : (
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>My Collection</Text>
+              <Text style={styles.headerTitle}>{t.library.title}</Text>
             </View>
           )
         }
@@ -241,34 +227,27 @@ export default function MyRecipesScreen() {
           !isLoading ? (
             search.trim() ? (
               <View style={styles.noResults}>
-                <Ionicons name="search-outline" size={48} color="#334155" />
-                <Text style={styles.noResultsTitle}>No Matches</Text>
-                <Text style={styles.noResultsText}>
-                  No recipes found for "{search}". Try a different term.
-                </Text>
+                <Ionicons name="search-outline" size={48} color={COLORS.surface} />
+                <Text style={styles.noResultsTitle}>{t.library.noMatchTitle}</Text>
+                <Text style={styles.noResultsText}>{t.library.noMatchText}</Text>
               </View>
             ) : (
               <Animated.View style={[styles.empty, { opacity: emptyFade }]}>
                 <View style={styles.emptyIllustration}>
                   <LinearGradient
-                    colors={['#1e293b', '#0f172a']}
+                    colors={[COLORS.surface, COLORS.surfaceDeep]}
                     style={styles.illustrationCircle}
                   >
-                    <Ionicons name="journal-outline" size={80} color="#334155" />
+                    <Ionicons name="journal-outline" size={80} color={COLORS.elevated} />
                     <View style={styles.emptyPlusIcon}>
-                      <Ionicons name="add" size={24} color="#f5a623" />
+                      <Ionicons name="add" size={24} color={COLORS.primary} />
                     </View>
                   </LinearGradient>
                 </View>
-                <Text style={styles.emptyTitle}>Your Kitchen is Empty</Text>
-                <Text style={styles.emptySubtitle}>
-                  Start building your personal cookbook by adding recipes manually or scanning them with AI.
-                </Text>
-                <TouchableOpacity
-                  style={styles.addFirstBtn}
-                  onPress={() => router.push('/recipe/new')}
-                >
-                  <Text style={styles.addFirstBtnText}>Create My First Recipe</Text>
+                <Text style={styles.emptyTitle}>{t.library.emptyTitle}</Text>
+                <Text style={styles.emptySubtitle}>{t.library.emptySubtitle}</Text>
+                <TouchableOpacity style={styles.addFirstBtn} onPress={() => router.push('/recipe/new')}>
+                  <Text style={styles.addFirstBtnText}>{t.library.createFirst}</Text>
                 </TouchableOpacity>
               </Animated.View>
             )
@@ -280,7 +259,7 @@ export default function MyRecipesScreen() {
         style={[styles.fabContainer, { opacity: fabScale, transform: [{ scale: fabScale }] }]}
       >
         <TouchableOpacity onPress={() => router.push('/recipe/new')} activeOpacity={0.8}>
-          <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.fab}>
+          <LinearGradient colors={[COLORS.primaryLight, COLORS.primary]} style={styles.fab}>
             <Ionicons name="add" size={32} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
@@ -290,7 +269,7 @@ export default function MyRecipesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     paddingVertical: 20,
     flexDirection: 'row',
@@ -298,37 +277,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 28,
     fontFamily: 'Inter_800ExtraBold',
     letterSpacing: -0.5,
   },
-  statsContainer: { flexDirection: 'row' },
   statBadge: {
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    backgroundColor: COLORS.primaryTint,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(245, 166, 35, 0.2)',
+    borderColor: COLORS.border,
   },
   statText: {
-    color: '#f5a623',
-    fontSize: 12,
-    fontWeight: '700',
+    color: COLORS.primary,
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   extractorCard: {
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(245,166,35,0.15)',
-    marginBottom: 16,
+    borderColor: COLORS.border,
+    marginBottom: 14,
   },
-  extractorInner: {
-    padding: 16,
-  },
+  extractorInner: { padding: 16 },
   extractorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -343,13 +320,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   extractorTitle: {
-    color: '#fff',
-    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontSize: 13,
     fontFamily: 'Inter_700Bold',
     marginBottom: 1,
   },
   extractorSub: {
-    color: '#475569',
+    color: COLORS.textMuted,
     fontSize: 11,
     fontFamily: 'Inter_400Regular',
   },
@@ -360,13 +337,13 @@ const styles = StyleSheet.create({
   },
   extractorInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.primaryTintDark,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: COLORS.borderSubtle,
     paddingHorizontal: 12,
     height: 42,
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
   },
@@ -381,20 +358,37 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 48,
-    marginBottom: 16,
+    height: 46,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.borderSubtle,
   },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '500' },
+  searchInput: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+  },
 
   noResults: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
-  noResultsTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  noResultsText: { color: '#64748b', fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  noResultsTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontFamily: 'Inter_700Bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
 
   empty: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
   emptyIllustration: { marginBottom: 30 },
@@ -405,45 +399,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: COLORS.borderSubtle,
   },
   emptyPlusIcon: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#0a0a0f',
+    borderColor: COLORS.bg,
   },
-  emptyTitle: { color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 12 },
+  emptyTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 12,
+  },
   emptySubtitle: {
-    color: '#64748b',
-    fontSize: 15,
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
     marginBottom: 30,
   },
   addFirstBtn: {
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    backgroundColor: COLORS.primaryTint,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#f5a623',
+    borderColor: COLORS.primary,
   },
-  addFirstBtnText: { color: '#f5a623', fontSize: 16, fontWeight: '700' },
+  addFirstBtnText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+  },
 
   fabContainer: {
     position: 'absolute',
     bottom: 100,
     right: 24,
     elevation: 8,
-    shadowColor: '#f5a623',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 10,

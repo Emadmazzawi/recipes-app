@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
-  Animated,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +20,11 @@ import {
   clearShoppingList,
 } from '../../lib/storage';
 import { ShoppingItem } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { COLORS } from '../../constants/theme';
 
 export default function ShoppingScreen() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,10 +62,10 @@ export default function ShoppingScreen() {
 
   const handleClearAll = () => {
     if (items.length === 0) return;
-    Alert.alert('Clear Everything', 'Remove all items from your shopping list?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.shopping.clearAllTitle, t.shopping.clearAllConfirm, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: 'Clear All',
+        text: t.shopping.clearAll,
         style: 'destructive',
         onPress: async () => {
           await clearShoppingList();
@@ -85,7 +87,7 @@ export default function ShoppingScreen() {
         activeOpacity={0.7}
       >
         <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
-          {item.checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+          {item.checked && <Ionicons name="checkmark" size={13} color="#fff" />}
         </View>
 
         <View style={styles.itemContent}>
@@ -106,7 +108,7 @@ export default function ShoppingScreen() {
         style={styles.removeBtn}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="close" size={18} color="#475569" />
+        <Ionicons name="close" size={17} color={COLORS.textFaint} />
       </TouchableOpacity>
     </View>
   );
@@ -117,53 +119,59 @@ export default function ShoppingScreen() {
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Shopping List</Text>
+          <Text style={styles.headerTitle}>{t.shopping.title}</Text>
           {totalCount > 0 && (
             <Text style={styles.headerSub}>
-              {checkedCount} of {totalCount} checked
+              {checkedCount}/{totalCount} done
             </Text>
           )}
         </View>
         <View style={styles.headerActions}>
           {checkedCount > 0 && (
             <TouchableOpacity onPress={handleClearChecked} style={styles.headerBtn}>
-              <Ionicons name="checkmark-done" size={18} color="#22c55e" />
+              <Ionicons name="checkmark-done" size={20} color={COLORS.success} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={handleClearAll} style={styles.headerBtn}>
-            <Ionicons name="trash-outline" size={18} color="#ef4444" />
+          <TouchableOpacity onPress={handleClearAll} style={[styles.headerBtn, styles.headerBtnDanger]}>
+            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
           </TouchableOpacity>
         </View>
       </View>
 
       {totalCount > 0 && (
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${(checkedCount / totalCount) * 100}%` },
-            ]}
-          />
+        <View style={styles.progressBarWrap}>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${totalCount > 0 ? (checkedCount / totalCount) * 100 : 0}%` as any },
+              ]}
+            />
+          </View>
         </View>
       )}
 
       <FlatList
         data={sorted}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: 8 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 8,
+          paddingBottom: 140,
+          flexGrow: 1,
+        }}
         renderItem={renderItem}
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.empty}>
-              <View style={styles.emptyIconWrap}>
-                <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.emptyCircle}>
-                  <Ionicons name="cart-outline" size={64} color="#334155" />
-                </LinearGradient>
-              </View>
-              <Text style={styles.emptyTitle}>List is Empty</Text>
-              <Text style={styles.emptyText}>
-                Open any recipe and tap "Shopping" to add its ingredients here.
-              </Text>
+              <LinearGradient
+                colors={[COLORS.surface, COLORS.surfaceDeep]}
+                style={styles.emptyCircle}
+              >
+                <Ionicons name="cart-outline" size={64} color={COLORS.elevated} />
+              </LinearGradient>
+              <Text style={styles.emptyTitle}>{t.shopping.emptyTitle}</Text>
+              <Text style={styles.emptyText}>{t.shopping.emptyText}</Text>
             </View>
           ) : null
         }
@@ -173,7 +181,7 @@ export default function ShoppingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
 
   header: {
     flexDirection: 'row',
@@ -184,60 +192,70 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: 'Inter_800ExtraBold',
     letterSpacing: -0.5,
   },
   headerSub: {
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
     marginTop: 2,
   },
   headerActions: { flexDirection: 'row', gap: 10 },
   headerBtn: {
-    backgroundColor: '#16213e',
-    padding: 10,
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.borderSubtle,
+  },
+  headerBtnDanger: {
+    backgroundColor: COLORS.errorTint,
+    borderColor: 'rgba(239,68,68,0.2)',
   },
 
-  progressBar: {
-    height: 3,
-    backgroundColor: '#1e293b',
-    marginHorizontal: 20,
-    borderRadius: 2,
-    marginBottom: 12,
+  progressBarWrap: {
+    paddingHorizontal: 24,
+    marginBottom: 8,
   },
-  progressFill: {
-    height: 3,
-    backgroundColor: '#22c55e',
+  progressBarBg: {
+    height: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.success,
     borderRadius: 2,
   },
 
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     paddingVertical: 4,
     paddingRight: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.borderSubtle,
+  },
+  itemRowChecked: {
+    opacity: 0.5,
+    borderColor: 'rgba(74, 222, 128, 0.2)',
   },
   itemToggleArea: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    gap: 14,
-  },
-  itemRowChecked: {
-    opacity: 0.55,
-    borderColor: 'rgba(34,197,94,0.2)',
+    gap: 12,
   },
 
   checkbox: {
@@ -245,39 +263,63 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: COLORS.elevated,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   checkboxChecked: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
   },
 
   itemContent: { flex: 1 },
-  itemName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  itemNameChecked: { textDecorationLine: 'line-through', color: '#64748b' },
-  itemMeta: { color: '#64748b', fontSize: 13, marginTop: 2 },
-  itemRecipe: { color: '#475569', fontStyle: 'italic' },
+  itemName: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontFamily: 'Inter_600SemiBold',
+    marginBottom: 2,
+  },
+  itemNameChecked: {
+    color: COLORS.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  itemMeta: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  itemRecipe: {
+    color: COLORS.textFaint,
+    fontFamily: 'Inter_400Regular',
+  },
+  removeBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: COLORS.primaryTintDark,
+  },
 
-  removeBtn: { padding: 4 },
-
-  empty: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
-  emptyIconWrap: { marginBottom: 28 },
+  empty: { alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: 80 },
   emptyCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 24,
   },
-  emptyTitle: { color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 10 },
+  emptyTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 8,
+  },
   emptyText: {
-    color: '#64748b',
-    fontSize: 15,
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
+    paddingHorizontal: 40,
   },
 });

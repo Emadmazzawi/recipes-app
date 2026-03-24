@@ -12,6 +12,7 @@ import {
   Inter_800ExtraBold,
   Inter_900Black,
 } from '@expo-google-fonts/inter';
+import { LanguageProvider } from '../contexts/LanguageContext';
 
 export {
   ErrorBoundary,
@@ -68,26 +69,28 @@ export default function RootLayout() {
   if (!initialized || !fontsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#f5a623" />
+        <ActivityIndicator size="large" color="#e8722a" />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/index" options={{ headerShown: false }} />
-      <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
-      <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
-    </Stack>
+    <LanguageProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/index" options={{ headerShown: false }} />
+        <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
+        <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
+      </Stack>
+    </LanguageProvider>
   );
 }
 
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#0f0a06',
     justifyContent: 'center',
     alignItems: 'center',
   }

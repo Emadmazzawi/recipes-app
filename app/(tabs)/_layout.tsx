@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { StyleSheet, Platform, View } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 function FloatingTabBarBackground() {
   return (
@@ -14,6 +15,8 @@ function FloatingTabBarBackground() {
 }
 
 export default function TabsLayout() {
+  const { t } = useLanguage();
+
   return (
     <Tabs
       screenOptions={{
@@ -36,8 +39,8 @@ export default function TabsLayout() {
           shadowRadius: 20,
         },
         tabBarBackground: () => <FloatingTabBarBackground />,
-        tabBarActiveTintColor: '#f5a623',
-        tabBarInactiveTintColor: '#475569',
+        tabBarActiveTintColor: '#e8722a',
+        tabBarInactiveTintColor: '#4a3426',
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Inter_600SemiBold',
@@ -49,7 +52,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Discover',
-          tabBarLabel: 'Explore',
+          tabBarLabel: t.tabs.explore,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'compass' : 'compass-outline'} color={color} size={size + 2} />
           ),
@@ -59,7 +62,7 @@ export default function TabsLayout() {
         name="my-recipes"
         options={{
           title: 'My Kitchen',
-          tabBarLabel: 'Library',
+          tabBarLabel: t.tabs.library,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'library' : 'library-outline'} color={color} size={size + 2} />
           ),
@@ -69,7 +72,7 @@ export default function TabsLayout() {
         name="shopping"
         options={{
           title: 'Shopping List',
-          tabBarLabel: 'Shopping',
+          tabBarLabel: t.tabs.shopping,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'cart' : 'cart-outline'} color={color} size={size + 2} />
           ),
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
   blurInner: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(232, 114, 42, 0.15)',
     overflow: 'hidden',
   },
 });
