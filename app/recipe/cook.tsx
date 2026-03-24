@@ -18,10 +18,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import { getPersonalRecipes } from '../../lib/storage';
 import { Recipe } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function CookModeScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -42,7 +44,7 @@ export default function CookModeScreen() {
     if (timerSeconds <= 0) {
       setTimerActive(false);
       Vibration.vibrate([0, 400, 200, 400, 200, 400]);
-      Alert.alert('⏰ Time is up!', 'Ready to move to the next step?');
+      Alert.alert(t.cook.timeUp, t.cook.timeUpMessage);
       return;
     }
     const interval = setInterval(() => {
@@ -62,6 +64,17 @@ export default function CookModeScreen() {
     if (found) setRecipe(found);
   };
 
+  const getLocalizedSteps = (): string[] => {
+    if (!recipe) return [];
+    if (language === 'he' && recipe.instructions_he && recipe.instructions_he.length > 0) {
+      return recipe.instructions_he;
+    }
+    if (language === 'ar' && recipe.instructions_ar && recipe.instructions_ar.length > 0) {
+      return recipe.instructions_ar;
+    }
+    return recipe.steps;
+  };
+
   const animateTransition = () => {
     stepAnim.setValue(0);
     Animated.spring(stepAnim, {
@@ -73,7 +86,8 @@ export default function CookModeScreen() {
   };
 
   const goNext = () => {
-    if (!recipe || currentStep >= recipe.steps.length - 1) return;
+    const steps = getLocalizedSteps();
+    if (!recipe || currentStep >= steps.length - 1) return;
     setCurrentStep(prev => prev + 1);
     setTimerActive(false);
     setTimerSeconds(0);
@@ -113,32 +127,41 @@ export default function CookModeScreen() {
     return '#ef4444';
   };
 
+  const getLocalizedTitle = (): string => {
+    if (!recipe) return '';
+    if (language === 'he' && recipe.title_he) return recipe.title_he;
+    if (language === 'ar' && recipe.title_ar) return recipe.title_ar;
+    return recipe.title;
+  };
+
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>{t.cook.loading}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!recipe.steps || recipe.steps.length === 0) {
+  const localizedSteps = getLocalizedSteps();
+
+  if (!localizedSteps || localizedSteps.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Ionicons name="document-outline" size={64} color="#334155" />
-          <Text style={styles.noStepsTitle}>No Steps Available</Text>
-          <Text style={styles.noStepsText}>This recipe doesn't have any preparation steps.</Text>
+          <Text style={styles.noStepsTitle}>{t.cook.noStepsTitle}</Text>
+          <Text style={styles.noStepsText}>{t.cook.noStepsText}</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.backHomeBtn}>
-            <Text style={styles.backHomeBtnText}>Go Back</Text>
+            <Text style={styles.backHomeBtnText}>{t.cook.goBack}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  const totalSteps = recipe.steps.length;
+  const totalSteps = localizedSteps.length;
   const progress = (currentStep + 1) / totalSteps;
   const isFirst = currentStep === 0;
   const isLast = currentStep === totalSteps - 1;
@@ -150,11 +173,11 @@ export default function CookModeScreen() {
         <SafeAreaView style={styles.safeArea}>
 
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, isRTL && styles.headerRTL]}>
             <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
               <Ionicons name="close" size={22} color="#94a3b8" />
             </TouchableOpacity>
-            <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
+            <Text style={[styles.recipeTitle, isRTL && styles.textRTL]} numberOfLines={1}>{getLocalizedTitle()}</Text>
             <TouchableOpacity onPress={() => setShowTimerModal(true)} style={styles.timerBtn}>
               <Ionicons name="timer-outline" size={22} color="#f5a623" />
             </TouchableOpacity>
@@ -164,8 +187,8 @@ export default function CookModeScreen() {
           <View style={styles.progressOuter}>
             <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
-          <Text style={styles.stepCounter}>
-            Step {currentStep + 1} <Text style={styles.stepCounterOf}>of {totalSteps}</Text>
+          <Text style={[styles.stepCounter, isRTL && styles.textRTL]}>
+            {t.cook.step} {currentStep + 1} <Text style={styles.stepCounterOf}>{t.cook.of} {totalSteps}</Text>
           </Text>
 
           {/* Step content */}
@@ -188,7 +211,7 @@ export default function CookModeScreen() {
             <LinearGradient colors={['#f5a623', '#d97706']} style={styles.stepBadge}>
               <Text style={styles.stepBadgeText}>{currentStep + 1}</Text>
             </LinearGradient>
-            <Text style={styles.stepText}>{recipe.steps[currentStep]}</Text>
+            <Text style={[styles.stepText, isRTL && styles.textRTL]}>{localizedSteps[currentStep]}</Text>
           </Animated.View>
 
           {/* Timer display */}
@@ -215,14 +238,15 @@ export default function CookModeScreen() {
           )}
 
           {/* Navigation */}
-          <View style={styles.navRow}>
+          <View style={[styles.navRow, isRTL && styles.navRowRTL]}>
+            {/* Prev button — visually on left in LTR, right in RTL */}
             <TouchableOpacity
               style={[styles.navBtn, isFirst && styles.navBtnDisabled]}
               onPress={goPrev}
               disabled={isFirst}
             >
-              <Ionicons name="arrow-back" size={22} color={isFirst ? '#334155' : '#fff'} />
-              <Text style={[styles.navBtnText, isFirst && styles.navBtnTextDisabled]}>Prev</Text>
+              <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={22} color={isFirst ? '#334155' : '#fff'} />
+              <Text style={[styles.navBtnText, isFirst && styles.navBtnTextDisabled]}>{t.cook.prev}</Text>
             </TouchableOpacity>
 
             <View style={styles.dotRow}>
@@ -238,17 +262,18 @@ export default function CookModeScreen() {
               })}
             </View>
 
+            {/* Next/Done button — visually on right in LTR, left in RTL */}
             {isLast ? (
               <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
                 <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.doneBtnGrad}>
                   <Ionicons name="checkmark" size={22} color="#fff" />
-                  <Text style={styles.doneBtnText}>Done!</Text>
+                  <Text style={styles.doneBtnText}>{t.cook.done}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.navBtnNext} onPress={goNext}>
-                <Text style={styles.navBtnNextText}>Next</Text>
-                <Ionicons name="arrow-forward" size={22} color="#fff" />
+                <Text style={styles.navBtnNextText}>{t.cook.next}</Text>
+                <Ionicons name={isRTL ? 'arrow-back' : 'arrow-forward'} size={22} color="#fff" />
               </TouchableOpacity>
             )}
           </View>
@@ -268,8 +293,8 @@ export default function CookModeScreen() {
             <View style={styles.modalIcon}>
               <Ionicons name="timer" size={32} color="#f5a623" />
             </View>
-            <Text style={styles.modalTitle}>Set Timer</Text>
-            <Text style={styles.modalSub}>How many minutes for this step?</Text>
+            <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.cook.setTimer}</Text>
+            <Text style={[styles.modalSub, isRTL && styles.textRTL]}>{t.cook.timerQuestion}</Text>
             <TextInput
               style={styles.modalInput}
               value={timerInput}
@@ -279,16 +304,16 @@ export default function CookModeScreen() {
               selectTextOnFocus
               textAlign="center"
             />
-            <View style={styles.modalBtns}>
+            <View style={[styles.modalBtns, isRTL && styles.modalBtnsRTL]}>
               <TouchableOpacity
                 style={styles.modalCancel}
                 onPress={() => setShowTimerModal(false)}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalStart} onPress={startTimer}>
                 <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.modalStartGrad}>
-                  <Text style={styles.modalStartText}>Start Timer</Text>
+                  <Text style={styles.modalStartText}>{t.cook.startTimer}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -317,6 +342,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     gap: 12,
   },
+  headerRTL: { flexDirection: 'row-reverse' },
   exitBtn: {
     width: 40,
     height: 40,
@@ -326,6 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   recipeTitle: { flex: 1, color: '#94a3b8', fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   timerBtn: {
     width: 40,
     height: 40,
@@ -415,6 +442,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 16,
   },
+  navRowRTL: { flexDirection: 'row-reverse' },
   navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -496,13 +524,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
   },
   modalBtns: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalBtnsRTL: { flexDirection: 'row-reverse' },
   modalCancel: {
     flex: 1,
     backgroundColor: '#1e293b',
     borderRadius: 14,
-    paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 14,
   },
   modalCancelText: { color: '#94a3b8', fontSize: 15, fontWeight: '700' },
   modalStart: { flex: 1, borderRadius: 14, overflow: 'hidden' },

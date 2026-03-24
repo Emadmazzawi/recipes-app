@@ -24,7 +24,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { COLORS } from '../../constants/theme';
 
 export default function ShoppingScreen() {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -80,9 +80,9 @@ export default function ShoppingScreen() {
   const totalCount = items.length;
 
   const renderItem = ({ item }: { item: ShoppingItem }) => (
-    <View style={[styles.itemRow, item.checked && styles.itemRowChecked]}>
+    <View style={[styles.itemRow, item.checked && styles.itemRowChecked, isRTL && { flexDirection: 'row-reverse', paddingRight: 0, paddingLeft: 12 }]}>
       <TouchableOpacity
-        style={styles.itemToggleArea}
+        style={[styles.itemToggleArea, isRTL && { flexDirection: 'row-reverse' }]}
         onPress={() => handleToggle(item.id)}
         activeOpacity={0.7}
       >
@@ -91,10 +91,10 @@ export default function ShoppingScreen() {
         </View>
 
         <View style={styles.itemContent}>
-          <Text style={[styles.itemName, item.checked && styles.itemNameChecked]}>
+          <Text style={[styles.itemName, item.checked && styles.itemNameChecked, isRTL && styles.textRTL]}>
             {item.name}
           </Text>
-          <Text style={styles.itemMeta}>
+          <Text style={[styles.itemMeta, isRTL && styles.textRTL]}>
             {item.amount} {item.unit}
             {item.recipeTitle ? (
               <Text style={styles.itemRecipe}>  ·  {item.recipeTitle}</Text>
@@ -117,12 +117,12 @@ export default function ShoppingScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <View>
-          <Text style={styles.headerTitle}>{t.shopping.title}</Text>
+          <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.shopping.title}</Text>
           {totalCount > 0 && (
-            <Text style={styles.headerSub}>
-              {checkedCount}/{totalCount} done
+            <Text style={[styles.headerSub, isRTL && styles.textRTL]}>
+              {checkedCount}/{totalCount} {t.shopping.done}
             </Text>
           )}
         </View>
@@ -170,8 +170,8 @@ export default function ShoppingScreen() {
               >
                 <Ionicons name="cart-outline" size={64} color={COLORS.elevated} />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>{t.shopping.emptyTitle}</Text>
-              <Text style={styles.emptyText}>{t.shopping.emptyText}</Text>
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.shopping.emptyTitle}</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t.shopping.emptyText}</Text>
             </View>
           ) : null
         }
@@ -182,6 +182,7 @@ export default function ShoppingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
 
   header: {
     flexDirection: 'row',

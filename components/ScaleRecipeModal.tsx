@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../types';
 import { formatAmount } from '../lib/scaler';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ScaleRecipeModalProps {
   visible: boolean;
@@ -26,19 +27,25 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
   recipe,
   onApplyScale,
 }) => {
+  const { t, isRTL, language } = useLanguage();
   const [selectedIngredientIndex, setSelectedIngredientIndex] = useState<number | null>(null);
   const [availableAmount, setAvailableAmount] = useState('');
   const [scalerMode, setScalerMode] = useState<'ingredient' | 'servings'>('ingredient');
   const [targetServings, setTargetServings] = useState(recipe.servings.toString());
 
+  const localizedIngredients =
+    language === 'he' && recipe.ingredients_he && recipe.ingredients_he.length > 0 ? recipe.ingredients_he :
+    language === 'ar' && recipe.ingredients_ar && recipe.ingredients_ar.length > 0 ? recipe.ingredients_ar :
+    recipe.ingredients;
+
   const applyIngredientScale = () => {
     if (selectedIngredientIndex === null) return;
     const amount = parseFloat(availableAmount);
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Invalid amount', 'Please enter a valid positive number.');
+      Alert.alert(t.scale.invalidAmount, t.scale.enterValidAmount);
       return;
     }
-    const originalIngredient = recipe.ingredients[selectedIngredientIndex];
+    const originalIngredient = localizedIngredients[selectedIngredientIndex];
     const factor = amount / originalIngredient.amount;
     onApplyScale(factor, selectedIngredientIndex);
     onClose();
@@ -47,7 +54,7 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
   const applyServingsScale = () => {
     const servings = parseFloat(targetServings);
     if (isNaN(servings) || servings <= 0) {
-      Alert.alert('Invalid servings', 'Please enter a valid number of servings.');
+      Alert.alert(t.scale.invalidServings, t.scale.enterValidServings);
       return;
     }
     const factor = servings / recipe.servings;
@@ -59,21 +66,20 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Scale Recipe</Text>
+          <View style={[styles.modalHeader, isRTL && styles.rowRTL]}>
+            <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.scale.title}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          {/* Mode tabs */}
-          <View style={styles.modeTabs}>
+          <View style={[styles.modeTabs, isRTL && styles.rowRTL]}>
             <TouchableOpacity
               style={[styles.modeTab, scalerMode === 'ingredient' && styles.modeTabActive]}
               onPress={() => setScalerMode('ingredient')}
             >
               <Text style={[styles.modeTabText, scalerMode === 'ingredient' && styles.modeTabTextActive]}>
-                By Ingredient
+                {t.scale.byIngredient}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -81,20 +87,20 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
               onPress={() => setScalerMode('servings')}
             >
               <Text style={[styles.modeTabText, scalerMode === 'servings' && styles.modeTabTextActive]}>
-                By Servings
+                {t.scale.byServings}
               </Text>
             </TouchableOpacity>
           </View>
 
           {scalerMode === 'ingredient' ? (
             <>
-              <Text style={styles.modalSubtitle}>
-                Pick an ingredient you know the amount of, and we'll scale everything else.
+              <Text style={[styles.modalSubtitle, isRTL && styles.textRTL]}>
+                {t.scale.ingredientSubtitle}
               </Text>
 
-              <Text style={styles.modalLabel}>1. Select the limiting ingredient:</Text>
+              <Text style={[styles.modalLabel, isRTL && styles.textRTL]}>{t.scale.selectIngredient}</Text>
               <FlatList
-                data={recipe.ingredients}
+                data={localizedIngredients}
                 keyExtractor={item => item.id}
                 style={styles.ingredientPicker}
                 renderItem={({ item, index }) => (
@@ -102,21 +108,22 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
                     style={[
                       styles.pickerItem,
                       selectedIngredientIndex === index && styles.pickerItemSelected,
+                      isRTL && styles.rowRTL,
                     ]}
                     onPress={() => {
                       setSelectedIngredientIndex(index);
                       setAvailableAmount('');
                     }}
                   >
-                    <View style={styles.pickerItemLeft}>
+                    <View style={[styles.pickerItemLeft, isRTL && styles.rowRTL]}>
                       {selectedIngredientIndex === index ? (
                         <Ionicons name="checkmark-circle" size={18} color="#f5a623" />
                       ) : (
                         <Ionicons name="ellipse-outline" size={18} color="#555" />
                       )}
-                      <Text style={styles.pickerItemName}>{item.name}</Text>
+                      <Text style={[styles.pickerItemName, isRTL && styles.textRTL]}>{item.name}</Text>
                     </View>
-                    <Text style={styles.pickerItemAmount}>
+                    <Text style={[styles.pickerItemAmount, isRTL && styles.textRTL]}>
                       {formatAmount(item.amount)} {item.unit}
                     </Text>
                   </TouchableOpacity>
@@ -125,40 +132,43 @@ export const ScaleRecipeModal: React.FC<ScaleRecipeModalProps> = ({
 
               {selectedIngredientIndex !== null && (
                 <View style={styles.amountInputSection}>
-                  <Text style={styles.modalLabel}>
-                    2. How much {recipe.ingredients[selectedIngredientIndex].name} do you have? (
-                    {recipe.ingredients[selectedIngredientIndex].unit})
+                  <Text style={[styles.modalLabel, isRTL && styles.textRTL]}>
+                    {t.scale.howMuch.replace('{name}', localizedIngredients[selectedIngredientIndex].name)} ({localizedIngredients[selectedIngredientIndex].unit})
                   </Text>
                   <TextInput
-                    style={styles.amountInput}
-                    placeholder={`e.g. ${formatAmount(recipe.ingredients[selectedIngredientIndex].amount / 2)}`}
+                    style={[styles.amountInput, isRTL && styles.textRTL]}
+                    placeholder={t.scale.inputPlaceholder.replace('{amount}', formatAmount(localizedIngredients[selectedIngredientIndex].amount / 2))}
                     placeholderTextColor="#555"
                     keyboardType="numeric"
                     value={availableAmount}
                     onChangeText={setAvailableAmount}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                   <TouchableOpacity style={styles.applyBtn} onPress={applyIngredientScale}>
-                    <Text style={styles.applyBtnText}>Calculate & Scale</Text>
+                    <Text style={styles.applyBtnText}>{t.scale.calculateAndScale}</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </>
           ) : (
             <>
-              <Text style={styles.modalSubtitle}>
-                How many servings do you want to make? Original recipe makes {recipe.servings}.
+              <Text style={[styles.modalSubtitle, isRTL && styles.textRTL]}>
+                {t.scale.scaleTo} {recipe.servings} {t.scale.servings}.
               </Text>
-              <Text style={styles.modalLabel}>Target servings:</Text>
+              <Text style={[styles.modalLabel, isRTL && styles.textRTL]}>{t.scale.targetServings}</Text>
               <TextInput
-                style={styles.amountInput}
+                style={[styles.amountInput, isRTL && styles.textRTL]}
                 placeholder={recipe.servings.toString()}
                 placeholderTextColor="#555"
                 keyboardType="numeric"
                 value={targetServings}
                 onChangeText={setTargetServings}
+                textAlign={isRTL ? 'right' : 'left'}
               />
               <TouchableOpacity style={styles.applyBtn} onPress={applyServingsScale}>
-                <Text style={styles.applyBtnText}>Scale to {targetServings || '?'} Servings</Text>
+                <Text style={styles.applyBtnText}>
+                  {t.scale.scaleTo} {targetServings || '?'} {t.scale.servings}
+                </Text>
               </TouchableOpacity>
             </>
           )}
@@ -187,6 +197,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  rowRTL: { flexDirection: 'row-reverse' },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   modalSubtitle: { color: '#888', fontSize: 13, marginBottom: 16, lineHeight: 18 },
   modalLabel: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },

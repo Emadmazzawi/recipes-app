@@ -31,7 +31,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function MyRecipesScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -71,8 +71,8 @@ export default function MyRecipesScreen() {
 
   const handleDelete = (recipe: Recipe) => {
     Alert.alert(
-      'Delete Recipe',
-      `Remove "${recipe.title}" from your collection?`,
+      t.library.deleteTitle,
+      t.library.deleteMsg.replace('{title}', recipe.title),
       [
         { text: t.common.cancel, style: 'cancel' },
         {
@@ -132,8 +132,8 @@ export default function MyRecipesScreen() {
         ListHeaderComponent={
           !isLoading ? (
             <View>
-              <View style={styles.header}>
-                <Text style={styles.headerTitle}>{t.library.title}</Text>
+              <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
+                <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.library.title}</Text>
                 <View style={styles.statBadge}>
                   <Text style={styles.statText}>
                     {recipes.length} {recipes.length === 1 ? t.library.recipe : t.library.recipes}
@@ -144,7 +144,7 @@ export default function MyRecipesScreen() {
               {/* URL Extractor */}
               <BlurView intensity={30} tint="dark" style={styles.extractorCard}>
                 <View style={styles.extractorInner}>
-                  <View style={styles.extractorHeader}>
+                  <View style={[styles.extractorHeader, isRTL && { flexDirection: 'row-reverse' }]}>
                     <LinearGradient
                       colors={[COLORS.primaryLight, COLORS.primary]}
                       style={styles.extractorIcon}
@@ -152,14 +152,14 @@ export default function MyRecipesScreen() {
                       <Ionicons name="link" size={14} color="#fff" />
                     </LinearGradient>
                     <View>
-                      <Text style={styles.extractorTitle}>{t.library.importTitle}</Text>
-                      <Text style={styles.extractorSub}>{t.library.importSub}</Text>
+                      <Text style={[styles.extractorTitle, isRTL && styles.textRTL]}>{t.library.importTitle}</Text>
+                      <Text style={[styles.extractorSub, isRTL && styles.textRTL]}>{t.library.importSub}</Text>
                     </View>
                   </View>
-                  <View style={styles.extractorRow}>
+                  <View style={[styles.extractorRow, isRTL && { flexDirection: 'row-reverse' }]}>
                     <TextInput
-                      style={styles.extractorInput}
-                      placeholder="https://www.example.com/recipe..."
+                      style={[styles.extractorInput, isRTL && { textAlign: 'right' }]}
+                      placeholder={t.create.urlPlaceholder}
                       placeholderTextColor={COLORS.textFaint}
                       value={importUrl}
                       onChangeText={setImportUrl}
@@ -167,6 +167,7 @@ export default function MyRecipesScreen() {
                       keyboardType="url"
                       returnKeyType="go"
                       onSubmitEditing={handleUrlImport}
+                      textAlign={isRTL ? 'right' : 'left'}
                     />
                     <TouchableOpacity onPress={handleUrlImport} activeOpacity={0.85}>
                       <LinearGradient
@@ -174,7 +175,7 @@ export default function MyRecipesScreen() {
                         style={styles.extractorBtn}
                       >
                         <Ionicons
-                          name="arrow-forward"
+                          name={isRTL ? 'arrow-back' : 'arrow-forward'}
                           size={18}
                           color={importUrl.trim() ? '#fff' : COLORS.textFaint}
                         />
@@ -185,14 +186,15 @@ export default function MyRecipesScreen() {
               </BlurView>
 
               {recipes.length > 0 && (
-                <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={17} color={COLORS.textMuted} style={styles.searchIcon} />
+                <View style={[styles.searchContainer, isRTL && { flexDirection: 'row-reverse' }]}>
+                  <Ionicons name="search" size={17} color={COLORS.textMuted} style={isRTL ? styles.searchIconRTL : styles.searchIcon} />
                   <TextInput
-                    style={styles.searchInput}
+                    style={[styles.searchInput, isRTL && { textAlign: 'right' }]}
                     placeholder={t.library.searchPlaceholder}
                     placeholderTextColor={COLORS.textFaint}
                     value={search}
                     onChangeText={setSearch}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                   {search.length > 0 && (
                     <TouchableOpacity onPress={() => setSearch('')}>
@@ -203,8 +205,8 @@ export default function MyRecipesScreen() {
               )}
             </View>
           ) : (
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>{t.library.title}</Text>
+            <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
+              <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.library.title}</Text>
             </View>
           )
         }
@@ -367,6 +369,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderSubtle,
   },
   searchIcon: { marginRight: 10 },
+  searchIconRTL: { marginLeft: 10 },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   searchInput: {
     flex: 1,
     color: COLORS.textPrimary,

@@ -34,6 +34,8 @@ import { IngredientRow } from '../../components/IngredientRow';
 import { fetchNutritionForIngredient, NutritionData } from '../../lib/nutrition';
 import { NutritionSkeleton } from '../../components/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getCategoryLabel } from '../../lib/i18n';
 
 const { width, height } = Dimensions.get('window');
 
@@ -54,6 +56,7 @@ const SCALE_PRESETS = [
 export default function RecipeDetailScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [scaledIngredients, setScaledIngredients] = useState<Ingredient[]>([]);
@@ -77,6 +80,17 @@ export default function RecipeDetailScreen() {
     checkFavorite();
   }, [id, type]);
 
+  useEffect(() => {
+    if (recipe) {
+      const localized = getLocalizedIngredients();
+      if (scaleFactor === 1) {
+        setScaledIngredients(localized);
+      } else {
+        setScaledIngredients(scaleIngredients(localized, scaleFactor));
+      }
+    }
+  }, [language, recipe]);
+
   const loadRecipe = async () => {
     let found: Recipe | undefined;
     if (type === 'builtin') {
@@ -87,7 +101,11 @@ export default function RecipeDetailScreen() {
     }
     if (found) {
       setRecipe(found);
-      setScaledIngredients(found.ingredients);
+      const localizedIngredients =
+        language === 'he' && found.ingredients_he && found.ingredients_he.length > 0 ? found.ingredients_he :
+        language === 'ar' && found.ingredients_ar && found.ingredients_ar.length > 0 ? found.ingredients_ar :
+        found.ingredients;
+      setScaledIngredients(localizedIngredients);
       fetchTotalNutrition(found);
 
       if (found.steps) {
@@ -158,7 +176,8 @@ export default function RecipeDetailScreen() {
 
   const handleAmountChange = (index: number, newAmount: number) => {
     if (!recipe) return;
-    const originalAmount = recipe.ingredients[index].amount;
+    const localizedBase = getLocalizedIngredients();
+    const originalAmount = localizedBase[index]?.amount ?? recipe.ingredients[index].amount;
     const factor = calculateScaleFactor(originalAmount, newAmount);
 
     if (Math.abs(factor - scaleFactor) > 0.01) {
@@ -166,30 +185,59 @@ export default function RecipeDetailScreen() {
       triggerPulse();
     }
     setScaleFactor(factor);
-    setScaledIngredients(scaleIngredients(recipe.ingredients, factor));
+    setScaledIngredients(scaleIngredients(localizedBase, factor));
   };
 
   const applyScalePreset = (factor: number) => {
     if (!recipe) return;
+    const localizedBase = getLocalizedIngredients();
     setScaleFactor(factor);
-    setScaledIngredients(scaleIngredients(recipe.ingredients, factor));
+    setScaledIngredients(scaleIngredients(localizedBase, factor));
     setEditingIndex(null);
     Keyboard.dismiss();
     Vibration.vibrate(5);
     triggerPulse();
   };
 
+  const getLocalizedTitle = (): string => {
+    if (!recipe) return '';
+    if (language === 'he' && recipe.title_he) return recipe.title_he;
+    if (language === 'ar' && recipe.title_ar) return recipe.title_ar;
+    return recipe.title;
+  };
+
+  const getLocalizedDescription = (): string => {
+    if (!recipe) return '';
+    if (language === 'he' && recipe.description_he) return recipe.description_he;
+    if (language === 'ar' && recipe.description_ar) return recipe.description_ar;
+    return recipe.description;
+  };
+
+  const getLocalizedIngredients = (): Ingredient[] => {
+    if (!recipe) return [];
+    if (language === 'he' && recipe.ingredients_he && recipe.ingredients_he.length > 0) return recipe.ingredients_he;
+    if (language === 'ar' && recipe.ingredients_ar && recipe.ingredients_ar.length > 0) return recipe.ingredients_ar;
+    return recipe.ingredients;
+  };
+
+  const getLocalizedSteps = (): string[] => {
+    if (!recipe) return [];
+    if (language === 'he' && recipe.instructions_he && recipe.instructions_he.length > 0) return recipe.instructions_he;
+    if (language === 'ar' && recipe.instructions_ar && recipe.instructions_ar.length > 0) return recipe.instructions_ar;
+    return recipe.steps;
+  };
+
   const handleAddToShoppingList = async () => {
     if (!recipe) return;
     setAddingToCart(true);
     try {
-      await addIngredientsToShoppingList(scaledIngredients, recipe.title);
+      await addIngredientsToShoppingList(scaledIngredients, getLocalizedTitle());
       Alert.alert(
-        'Added to Shopping List',
-        `${scaledIngredients.length} ingredient${scaledIngredients.length !== 1 ? 's' : ''} added${scaleFactor !== 1 ? ` (scaled ${formatAmount(scaleFactor)}×)` : ''}.`
+        t.recipe.addedToShopping,
+        `${scaledIngredients.length} ${t.recipe.ingredientsAdded}${scaleFactor !== 1 ? ` (${t.recipe.scaled} ${formatAmount(scaleFactor)}×)` : ''}.`
       );
     } catch {
-      Alert.alert('Error', 'Could not add ingredients to shopping list.');
+      Alert.alert(t.common.error, t.recipe.couldNotAdd);
     } finally {
       setAddingToCart(false);
     }
@@ -205,7 +253,7 @@ export default function RecipeDetailScreen() {
   const resetScale = () => {
     if (!recipe) return;
     setScaleFactor(1);
-    setScaledIngredients(recipe.ingredients);
+    setScaledIngredients(getLocalizedIngredients());
     setEditingIndex(null);
     Keyboard.dismiss();
     Vibration.vibrate(10);
@@ -236,7 +284,7 @@ export default function RecipeDetailScreen() {
     if (isLoadingNutrition) {
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nutrition Information</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.nutritionInfo}</Text>
           <NutritionSkeleton />
         </View>
       );
@@ -244,10 +292,10 @@ export default function RecipeDetailScreen() {
     if (nutritionError) {
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nutrition Information</Text>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.nutritionInfo}</Text>
           <View style={styles.nutritionError}>
             <Ionicons name="alert-circle-outline" size={24} color="#64748b" />
-            <Text style={styles.nutritionErrorText}>Nutrition data unavailable for these ingredients.</Text>
+            <Text style={styles.nutritionErrorText}>{t.recipe.nutritionUnavailable}</Text>
           </View>
         </View>
       );
@@ -255,17 +303,17 @@ export default function RecipeDetailScreen() {
     if (!baseNutrition) return null;
 
     const items = [
-      { label: 'Calories', key: 'calories', val: Math.round(baseNutrition.calories * scaleFactor), unit: 'kcal', icon: 'flame', color: '#f5a623' },
-      { label: 'Protein', key: 'protein', val: Math.round(baseNutrition.protein * scaleFactor), unit: 'g', icon: 'barbell', color: '#4ade80' },
-      { label: 'Carbs', key: 'carbs', val: Math.round(baseNutrition.carbs * scaleFactor), unit: 'g', icon: 'pizza', color: '#60a5fa' },
-      { label: 'Fat', key: 'fat', val: Math.round(baseNutrition.fat * scaleFactor), unit: 'g', icon: 'water', color: '#fb7185' },
+      { label: t.recipe.calories, key: 'calories', val: Math.round(baseNutrition.calories * scaleFactor), unit: 'kcal', icon: 'flame', color: '#f5a623' },
+      { label: t.recipe.protein, key: 'protein', val: Math.round(baseNutrition.protein * scaleFactor), unit: 'g', icon: 'barbell', color: '#4ade80' },
+      { label: t.recipe.carbs, key: 'carbs', val: Math.round(baseNutrition.carbs * scaleFactor), unit: 'g', icon: 'pizza', color: '#60a5fa' },
+      { label: t.recipe.fat, key: 'fat', val: Math.round(baseNutrition.fat * scaleFactor), unit: 'g', icon: 'water', color: '#fb7185' },
     ];
 
     return (
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Nutrition Facts</Text>
-          <Text style={styles.nutritionSub}>Per serving</Text>
+        <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
+          <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.nutritionFacts}</Text>
+          <Text style={styles.nutritionSub}>{t.recipe.perServing}</Text>
         </View>
         <View style={styles.nutritionGrid}>
           {items.map((item, idx) => {
@@ -317,27 +365,27 @@ export default function RecipeDetailScreen() {
   const heroContent = (
     <View style={styles.heroContent}>
       <View style={styles.categoryBadge}>
-        <Text style={styles.categoryText}>{recipe.category}</Text>
+        <Text style={styles.categoryText}>{getCategoryLabel(t, recipe.category)}</Text>
       </View>
-      <Text style={styles.heroTitle}>{recipe.title}</Text>
+      <Text style={[styles.heroTitle, isRTL && styles.textRTL]}>{getLocalizedTitle()}</Text>
 
-      <View style={styles.heroStats}>
+      <View style={[styles.heroStats, isRTL && styles.rowRTL]}>
         <View style={styles.heroStatItem}>
           <Ionicons name="time-outline" size={15} color="#94a3b8" />
-          <Text style={styles.heroStatLabel}>Prep</Text>
-          <Text style={styles.heroStatText}>{recipe.prepTime} min</Text>
+          <Text style={styles.heroStatLabel}>{t.recipe.prep}</Text>
+          <Text style={styles.heroStatText}>{recipe.prepTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
           <Ionicons name="flame-outline" size={15} color="#94a3b8" />
-          <Text style={styles.heroStatLabel}>Cook</Text>
-          <Text style={styles.heroStatText}>{recipe.cookTime} min</Text>
+          <Text style={styles.heroStatLabel}>{t.recipe.cook}</Text>
+          <Text style={styles.heroStatText}>{recipe.cookTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
           <Ionicons name="people" size={15} color="#f5a623" />
           <Animated.Text style={[styles.heroStatText, { transform: [{ scale: pulseAnim }] }]}>
-            {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} Servings
+            {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} {t.common.servings}
           </Animated.Text>
         </View>
       </View>
@@ -437,7 +485,7 @@ export default function RecipeDetailScreen() {
                 ) : (
                   <Ionicons name="cart-outline" size={16} color="#60a5fa" />
                 )}
-                <Text style={[styles.actionChipText, { color: '#60a5fa' }]}>Shopping</Text>
+                <Text style={[styles.actionChipText, { color: '#60a5fa' }]}>{t.recipe.shopping}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -445,13 +493,13 @@ export default function RecipeDetailScreen() {
                 onPress={() => router.push({ pathname: '/recipe/cook', params: { id, type } })}
               >
                 <Ionicons name="flame-outline" size={16} color="#fff" />
-                <Text style={[styles.actionChipText, { color: '#fff' }]}>Cook Now</Text>
+                <Text style={[styles.actionChipText, { color: '#fff' }]}>{t.recipe.cookNow}</Text>
               </TouchableOpacity>
             </View>
 
-            {recipe.description ? (
+            {(getLocalizedDescription()) ? (
               <View style={styles.descSection}>
-                <Text style={styles.description}>{recipe.description}</Text>
+                <Text style={[styles.description, isRTL && styles.textRTL]}>{getLocalizedDescription()}</Text>
               </View>
             ) : null}
 
@@ -477,24 +525,24 @@ export default function RecipeDetailScreen() {
                 style={styles.scaleBannerGradient}
               >
                 <Ionicons name="resize" size={18} color="#fff" />
-                <Text style={styles.scaleBannerText}>Scaled {formatAmount(scaleFactor)}×</Text>
+                <Text style={styles.scaleBannerText}>{t.recipe.scaled} {formatAmount(scaleFactor)}×</Text>
                 <TouchableOpacity onPress={resetScale} style={styles.resetScaleInner}>
-                  <Text style={styles.resetScaleInnerText}>Reset</Text>
+                  <Text style={styles.resetScaleInnerText}>{t.recipe.reset}</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </Animated.View>
 
             {/* Ingredients section */}
             <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.titleWithIcon}>
+              <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
+                <View style={[styles.titleWithIcon, isRTL && styles.rowRTL]}>
                   <View style={styles.titleIconCircle}>
                     <Ionicons name="list" size={18} color="#f5a623" />
                   </View>
-                  <Text style={styles.sectionTitle}>Ingredients</Text>
+                  <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.ingredients}</Text>
                 </View>
                 {!isScaled && (
-                  <Text style={styles.hintText}>Tap amount to edit</Text>
+                  <Text style={styles.hintText}>{t.recipe.tapToEdit}</Text>
                 )}
               </View>
 
@@ -522,7 +570,7 @@ export default function RecipeDetailScreen() {
               </View>
 
               <View style={styles.ingredientsList}>
-                {scaledIngredients.map((ing, index) => (
+                {(scaledIngredients.length > 0 ? scaledIngredients : getLocalizedIngredients()).map((ing, index) => (
                   <IngredientRow
                     key={ing.id}
                     ingredient={ing}
@@ -539,18 +587,18 @@ export default function RecipeDetailScreen() {
             {renderNutrition()}
 
             {/* Steps section */}
-            {recipe.steps && recipe.steps.length > 0 && (
+            {getLocalizedSteps().length > 0 && (
               <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.titleWithIcon}>
+                <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
+                  <View style={[styles.titleWithIcon, isRTL && styles.rowRTL]}>
                     <View style={styles.titleIconCircle}>
                       <Ionicons name="restaurant" size={18} color="#f5a623" />
                     </View>
-                    <Text style={styles.sectionTitle}>Instructions</Text>
+                    <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.instructions}</Text>
                   </View>
                 </View>
                 <View style={styles.stepsList}>
-                  {recipe.steps.map((step, index) => (
+                  {getLocalizedSteps().map((step, index) => (
                     <Animated.View
                       key={index}
                       style={[
@@ -570,10 +618,10 @@ export default function RecipeDetailScreen() {
                         <LinearGradient colors={['#f5a623', '#d97706']} style={styles.stepNumber}>
                           <Text style={styles.stepNumberText}>{index + 1}</Text>
                         </LinearGradient>
-                        {index < recipe.steps!.length - 1 && <View style={styles.stepLine} />}
+                        {index < getLocalizedSteps().length - 1 && <View style={styles.stepLine} />}
                       </View>
                       <View style={styles.stepTextContainer}>
-                        <Text style={styles.stepText}>{step}</Text>
+                        <Text style={[styles.stepText, isRTL && styles.textRTL]}>{step}</Text>
                       </View>
                     </Animated.View>
                   ))}
@@ -879,4 +927,6 @@ const styles = StyleSheet.create({
   },
   stepTextContainer: { flex: 1, paddingTop: 8 },
   stepText: { color: '#cbd5e1', fontSize: 15, lineHeight: 24, fontWeight: '500' },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
+  rowRTL: { flexDirection: 'row-reverse' },
 });

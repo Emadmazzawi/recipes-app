@@ -27,6 +27,7 @@ import { smartSearchRecipes } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { getCategoryLabel } from '../../lib/i18n';
 import { COLORS } from '../../constants/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -284,7 +285,7 @@ export default function BuiltInRecipesScreen() {
                   selectedCategory !== item && item === 'Favorites' && { color: '#ef4444' }
                 ]}
               >
-                {item === 'All' ? t.explore.all : item === 'Favorites' ? t.explore.favorites : item}
+                {item === 'Favorites' ? t.explore.favorites : getCategoryLabel(t, item)}
               </Text>
             </TouchableOpacity>
           )}
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 40,
   },
-  textRTL: { textAlign: 'right', writingDirection: 'rtl' } as any,
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',

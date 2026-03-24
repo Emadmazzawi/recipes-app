@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { COLORS } from '../../constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
@@ -26,10 +27,11 @@ export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
 
   async function handleAuth() {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.');
+      Alert.alert(t.auth.errorTitle, t.auth.errorBothFields);
       return;
     }
     setLoading(true);
@@ -37,14 +39,14 @@ export default function AuthScreen() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        Alert.alert('Success', 'Check your email for the confirmation link!');
+        Alert.alert(t.auth.successTitle, t.auth.successSignUp);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         router.replace('/(tabs)');
       }
     } catch (error: any) {
-      Alert.alert('Authentication Error', error.message);
+      Alert.alert(t.auth.errorTitle, error.message);
     } finally {
       setLoading(false);
     }
@@ -81,46 +83,48 @@ export default function AuthScreen() {
               </LinearGradient>
               <View style={styles.logoGlow} />
             </View>
-            <Text style={styles.appName}>Recipe Scaler</Text>
-            <Text style={styles.tagline}>
-              {isSignUp ? 'Create an account to sync your recipes' : 'Your personal AI kitchen, elevated.'}
+            <Text style={[styles.appName, isRTL && styles.textRTL]}>{t.auth.appName}</Text>
+            <Text style={[styles.tagline, isRTL && styles.textRTL]}>
+              {isSignUp ? t.auth.taglineSignUp : t.auth.taglineSignIn}
             </Text>
           </View>
 
           {/* Frosted glass form */}
           <BlurView intensity={50} tint="light" style={styles.glassForm}>
             <View style={styles.formInner}>
-              <Text style={styles.formTitle}>
-                {isSignUp ? 'Create Account' : 'Welcome back'}
+              <Text style={[styles.formTitle, isRTL && styles.textRTL]}>
+                {isSignUp ? t.auth.formTitleSignUp : t.auth.formTitleSignIn}
               </Text>
 
               <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Email Address</Text>
-                <View style={styles.inputRow}>
-                  <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.auth.emailLabel}</Text>
+                <View style={[styles.inputRow, isRTL && styles.inputRowRTL]}>
+                  <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
-                    placeholder="you@example.com"
+                    style={[styles.input, isRTL && styles.textRTL]}
+                    placeholder={t.auth.emailPlaceholder}
                     placeholderTextColor={COLORS.textFaint}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                 </View>
               </View>
 
               <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Password</Text>
-                <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.auth.passwordLabel}</Text>
+                <View style={[styles.inputRow, isRTL && styles.inputRowRTL]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, isRTL && styles.textRTL]}
                     placeholder="••••••••"
                     placeholderTextColor={COLORS.textFaint}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeBtn}>
                     <Ionicons
@@ -148,7 +152,7 @@ export default function AuthScreen() {
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
                     <Text style={styles.ctaText}>
-                      {isSignUp ? 'Create Account' : 'Sign In'}
+                      {isSignUp ? t.auth.signUp : t.auth.signIn}
                     </Text>
                   )}
                 </LinearGradient>
@@ -159,10 +163,10 @@ export default function AuthScreen() {
                 activeOpacity={0.7}
                 style={styles.switchRow}
               >
-                <Text style={styles.switchText}>
-                  {isSignUp ? 'Already have an account?  ' : "Don't have an account?  "}
+                <Text style={[styles.switchText, isRTL && styles.textRTL]}>
+                  {isSignUp ? t.auth.switchToSignIn + '  ' : t.auth.switchToSignUp + '  '}
                   <Text style={styles.switchHighlight}>
-                    {isSignUp ? 'Sign In' : 'Sign Up'}
+                    {isSignUp ? t.auth.signIn : t.auth.signUp}
                   </Text>
                 </Text>
               </TouchableOpacity>
@@ -170,12 +174,12 @@ export default function AuthScreen() {
           </BlurView>
 
           <TouchableOpacity
-            style={styles.guestRow}
+            style={[styles.guestRow, isRTL && styles.guestRowRTL]}
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.7}
           >
-            <Ionicons name="person-outline" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
-            <Text style={styles.guestText}>Continue as Guest</Text>
+            <Ionicons name="person-outline" size={14} color={COLORS.textMuted} style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
+            <Text style={[styles.guestText, isRTL && styles.textRTL]}>{t.auth.continueAsGuest}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -258,6 +262,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     paddingHorizontal: 20,
   },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   glassForm: {
     borderRadius: 28,
     overflow: 'hidden',
@@ -293,36 +301,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 52,
   },
+  inputRowRTL: { flexDirection: 'row-reverse' },
   inputIcon: { marginRight: 10 },
+  inputIconRTL: { marginLeft: 10 },
   input: {
     flex: 1,
     color: COLORS.textPrimary,
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
   },
-  eyeBtn: { padding: 4 },
-  ctaWrap: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 8,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+  eyeBtn: { padding: 6 },
+  ctaWrap: { borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  ctaGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  ctaGradient: { height: 54, justifyContent: 'center', alignItems: 'center' },
   ctaText: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: 'Inter_800ExtraBold',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  switchRow: { alignItems: 'center', marginTop: 22 },
+  switchRow: { alignItems: 'center', paddingVertical: 4 },
   switchText: {
     color: COLORS.textMuted,
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
   },
   switchHighlight: {
     color: COLORS.primary,
@@ -332,12 +338,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
+  guestRowRTL: { flexDirection: 'row-reverse' },
   guestText: {
     color: COLORS.textMuted,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Inter_500Medium',
-    textDecorationLine: 'underline',
   },
 });

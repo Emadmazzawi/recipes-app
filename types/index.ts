@@ -18,6 +18,14 @@ export interface Recipe {
   isBuiltIn: boolean;
   createdAt: string;
   imageUri?: string;
+  title_he?: string;
+  description_he?: string;
+  ingredients_he?: Ingredient[];
+  instructions_he?: string[];
+  title_ar?: string;
+  description_ar?: string;
+  ingredients_ar?: Ingredient[];
+  instructions_ar?: string[];
 }
 
 export interface ShoppingItem {

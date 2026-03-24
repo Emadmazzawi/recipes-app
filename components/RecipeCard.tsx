@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getCategoryLabel } from '../lib/i18n';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -32,6 +34,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
   const favoriteScale = useRef(new Animated.Value(1)).current;
+
+  const { t, language, isRTL } = useLanguage();
 
   useEffect(() => {
     Animated.parallel([
@@ -68,6 +72,21 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   };
 
+  const getLocalizedTitle = (): string => {
+    if (language === 'he' && recipe.title_he) return recipe.title_he;
+    if (language === 'ar' && recipe.title_ar) return recipe.title_ar;
+    return recipe.title;
+  };
+
+  const getLocalizedDescription = (): string => {
+    if (language === 'he' && recipe.description_he) return recipe.description_he;
+    if (language === 'ar' && recipe.description_ar) return recipe.description_ar;
+    return recipe.description;
+  };
+
+  const localizedTitle = getLocalizedTitle();
+  const localizedDescription = getLocalizedDescription();
+
   return (
     <Animated.View
       style={[
@@ -82,22 +101,22 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         activeOpacity={0.9}
       >
         <LinearGradient colors={[COLORS.card, COLORS.cardDeep]} style={styles.card}>
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, isRTL && styles.cardHeaderRTL]}>
             {categoryColor ? (
               <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '25' }]}>
                 <View style={[styles.dot, { backgroundColor: categoryColor }]} />
                 <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
-                  {recipe.category}
+                  {getCategoryLabel(t, recipe.category)}
                 </Text>
               </View>
             ) : (
               <View style={{ flex: 1 }} />
             )}
 
-            <View style={styles.headerRight}>
+            <View style={[styles.headerRight, isRTL && styles.headerRightRTL]}>
               <View style={styles.timeContainer}>
                 <Ionicons name="time-outline" size={13} color={COLORS.primary} />
-                <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} min</Text>
+                <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} {t.common.min}</Text>
               </View>
               {onToggleFavorite && (
                 <TouchableOpacity
@@ -135,7 +154,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             </View>
           </View>
 
-          <Text style={styles.cardTitle} numberOfLines={1}>{recipe.title}</Text>
+          <Text style={[styles.cardTitle, isRTL && styles.textRTL]} numberOfLines={1}>{localizedTitle}</Text>
 
           {reason ? (
             <View style={styles.reasonContainer}>
@@ -146,33 +165,33 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                 style={styles.reasonGradient}
               >
                 <Ionicons name="sparkles" size={13} color={COLORS.primary} />
-                <Text style={styles.reasonText} numberOfLines={1}>{reason}</Text>
+                <Text style={[styles.reasonText, isRTL && styles.textRTL]} numberOfLines={1}>{reason}</Text>
               </LinearGradient>
             </View>
           ) : (
-            <Text style={styles.cardDesc} numberOfLines={2}>
-              {recipe.description || 'A delicious recipe waiting to be discovered.'}
+            <Text style={[styles.cardDesc, isRTL && styles.textRTL]} numberOfLines={2}>
+              {localizedDescription || t.common.noDescription}
             </Text>
           )}
 
           <View style={styles.divider} />
 
-          <View style={styles.cardFooter}>
+          <View style={[styles.cardFooter, isRTL && styles.cardFooterRTL]}>
             <View style={styles.footerItem}>
               <View style={styles.iconCircle}>
                 <Ionicons name="people" size={12} color={COLORS.primary} />
               </View>
-              <Text style={styles.footerText}>{recipe.servings} Servings</Text>
+              <Text style={styles.footerText}>{recipe.servings} {t.common.servings}</Text>
             </View>
             <View style={styles.footerItem}>
               <View style={styles.iconCircle}>
                 <Ionicons name="restaurant" size={12} color={COLORS.primary} />
               </View>
-              <Text style={styles.footerText}>{recipe.ingredients.length} Items</Text>
+              <Text style={styles.footerText}>{recipe.ingredients.length} {t.common.items}</Text>
             </View>
             {!onDelete && !onEdit && (
               <View style={styles.arrowIcon}>
-                <Ionicons name="arrow-forward" size={15} color={COLORS.primary} />
+                <Ionicons name={isRTL ? 'arrow-back' : 'arrow-forward'} size={15} color={COLORS.primary} />
               </View>
             )}
           </View>
@@ -205,11 +224,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  cardHeaderRTL: { flexDirection: 'row-reverse' },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
   },
+  headerRightRTL: { flexDirection: 'row-reverse' },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,6 +274,10 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     letterSpacing: -0.4,
   },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   cardDesc: {
     color: COLORS.textSecondary,
     fontSize: 13,
@@ -285,6 +310,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  cardFooterRTL: { flexDirection: 'row-reverse' },
   footerItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   iconCircle: {
     width: 22,
@@ -300,9 +326,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
   },
   arrowIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     backgroundColor: COLORS.primaryTintDark,
     alignItems: 'center',
     justifyContent: 'center',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Ingredient } from '../types';
 import { formatAmount } from '../lib/scaler';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface IngredientRowProps {
   ingredient: Ingredient;
@@ -18,9 +19,9 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   isEditing,
   onStartEditing
 }) => {
+  const { isRTL } = useLanguage();
   const [inputValue, setInputValue] = useState(formatAmount(ingredient.amount));
 
-  // Sync internal input value with ingredient amount when not editing
   useEffect(() => {
     if (!isEditing) {
       setInputValue(formatAmount(ingredient.amount));
@@ -36,25 +37,28 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   };
 
   return (
-    <View style={[styles.ingredientRow, isHighlighted && styles.ingredientHighlighted]}>
-      <View style={styles.ingredientDot} />
-      <Text style={styles.ingredientName}>{ingredient.name}</Text>
+    <View style={[styles.ingredientRow, isHighlighted && styles.ingredientHighlighted, isRTL && styles.rowRTL]}>
+      <View style={[styles.dotWrapper, isRTL && styles.dotWrapperRTL]}>
+        <View style={styles.ingredientDot} />
+      </View>
+      <Text style={[styles.ingredientName, isRTL && styles.textRTL]}>{ingredient.name}</Text>
       
       {isEditing ? (
-        <View style={styles.amountContainer}>
+        <View style={[styles.amountContainer, isRTL && styles.amountContainerRTL]}>
           <TextInput
-            style={styles.amountInput}
+            style={[styles.amountInput, isRTL && { textAlign: 'right' }]}
             keyboardType="numeric"
             value={inputValue}
             onChangeText={handleChangeText}
             autoFocus
             selectTextOnFocus
             returnKeyType="done"
+            textAlign={isRTL ? 'right' : 'left'}
           />
           <Text style={styles.unitText}>{ingredient.unit}</Text>
         </View>
       ) : (
-        <TouchableOpacity onPress={onStartEditing} style={styles.amountContainer}>
+        <TouchableOpacity onPress={onStartEditing} style={[styles.amountContainer, isRTL && styles.amountContainerRTL]}>
           <Text style={styles.ingredientAmount}>
             {formatAmount(ingredient.amount)}
           </Text>
@@ -73,21 +77,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1e1e35',
   },
+  rowRTL: { flexDirection: 'row-reverse' },
   ingredientHighlighted: { backgroundColor: '#2d2d1a' },
+  dotWrapper: { marginRight: 10 },
+  dotWrapperRTL: { marginRight: 0, marginLeft: 10 },
   ingredientDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#f5a623',
-    marginRight: 10,
   },
   ingredientName: { flex: 1, color: '#ddd', fontSize: 15 },
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     minWidth: 80,
     justifyContent: 'flex-end',
+  },
+  amountContainerRTL: {
+    justifyContent: 'flex-start',
   },
   ingredientAmount: { 
     color: '#f5a623', 

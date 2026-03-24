@@ -29,6 +29,8 @@ import { Recipe, Ingredient } from '../../types';
 import { CATEGORIES } from '../../constants/recipes';
 import { scanIngredientsFromImage, importRecipeFromUrl } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getCategoryLabel } from '../../lib/i18n';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -45,6 +47,7 @@ export default function NewRecipeScreen() {
   const router = useRouter();
   const { editId, importUrl } = useLocalSearchParams<{ editId?: string; importUrl?: string }>();
   const isEditing = !!editId;
+  const { t, isRTL } = useLanguage();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -99,7 +102,7 @@ export default function NewRecipeScreen() {
         if (data.ingredients && Array.isArray(data.ingredients)) {
           setIngredients(data.ingredients.map((ing: any) => ({
             id: generateId(),
-            name: ing.name || 'Unknown',
+            name: ing.name || t.create.unknownIngredient,
             amount: ing.amount || 0,
             unit: (ing.unit || 'piece') as any,
           })));
@@ -109,7 +112,7 @@ export default function NewRecipeScreen() {
         }
       }
     } catch (err) {
-      Alert.alert('Import Failed', 'Could not extract recipe from that URL. Try pasting the recipe manually.');
+      Alert.alert(t.create.importFailed, t.create.importFailedMsg);
     } finally {
       setImporting(false);
     }
@@ -142,12 +145,12 @@ export default function NewRecipeScreen() {
   const pickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Needed', 'Please allow access to your photo library.');
+      Alert.alert(t.create.permissionNeeded, t.create.permissionPhotoLibMsg);
       return;
     }
-    Alert.alert('Add Photo', 'Choose a photo for this recipe', [
+    Alert.alert(t.create.addPhotoTitle, t.create.addPhotoMsg, [
       {
-        text: 'Camera',
+        text: t.create.camera,
         onPress: async () => {
           const { status: camStatus } = await ImagePicker.requestCameraPermissionsAsync();
           if (camStatus !== 'granted') return;
@@ -162,7 +165,7 @@ export default function NewRecipeScreen() {
         },
       },
       {
-        text: 'Gallery',
+        text: t.create.gallery,
         onPress: async () => {
           const result = await ImagePicker.launchImageLibraryAsync({
             allowsEditing: true,
@@ -174,7 +177,7 @@ export default function NewRecipeScreen() {
           }
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t.create.cancel, style: 'cancel' },
     ]);
   };
 
@@ -217,26 +220,26 @@ export default function NewRecipeScreen() {
     const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (cameraStatus !== 'granted' && libraryStatus !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant camera or gallery access to scan ingredients.');
+      Alert.alert(t.create.permissionScan, t.create.permissionScanMsg);
       return;
     }
 
-    Alert.alert('Scan Ingredients with AI', 'Choose a method to scan your ingredients.', [
+    Alert.alert(t.create.scanTitle, t.create.scanMsg, [
       {
-        text: 'Camera',
+        text: t.create.camera,
         onPress: async () => {
           const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, base64: true, quality: 0.8 });
           if (!result.canceled && result.assets[0].base64) processImage(result.assets[0].base64);
         },
       },
       {
-        text: 'Gallery',
+        text: t.create.gallery,
         onPress: async () => {
           const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, base64: true, quality: 0.8 });
           if (!result.canceled && result.assets[0].base64) processImage(result.assets[0].base64);
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t.create.cancel, style: 'cancel' },
     ]);
   };
 
@@ -247,7 +250,7 @@ export default function NewRecipeScreen() {
       if (parsed && parsed.length > 0) {
         const newIngredients = parsed.map(ing => ({
           id: generateId(),
-          name: ing.name || 'Unknown',
+          name: ing.name || t.create.unknownIngredient,
           amount: ing.amount || 0,
           unit: (ing.unit || 'piece') as any,
         }));
@@ -256,12 +259,12 @@ export default function NewRecipeScreen() {
           if (prev.length === 1 && prev[0].name.trim() === '' && prev[0].amount === 0) return newIngredients;
           return [...prev, ...newIngredients];
         });
-        Alert.alert('Success', `AI identified ${newIngredients.length} ingredients!`);
+        Alert.alert(t.create.scanSuccess, t.create.scanSuccessMsg.replace('{count}', String(newIngredients.length)));
       } else {
-        Alert.alert('No ingredients found', 'Gemini could not identify any ingredients in the image.');
+        Alert.alert(t.create.noIngredientsFound, t.create.noIngredientsFoundMsg);
       }
     } catch (err: any) {
-      Alert.alert('Scan failed', err.message || 'Could not extract ingredients. Please try again.');
+      Alert.alert(t.create.scanFailed, err.message || t.create.scanFailedMsg);
     } finally {
       setScanning(false);
     }
@@ -269,7 +272,7 @@ export default function NewRecipeScreen() {
 
   const handleImportUrl = async () => {
     if (!tempUrl.trim()) {
-      Alert.alert('Error', 'Please enter a valid URL');
+      Alert.alert(t.create.invalidUrl, t.create.invalidUrlMsg);
       return;
     }
     setShowUrlModal(false);
@@ -286,7 +289,7 @@ export default function NewRecipeScreen() {
         if (data.ingredients && Array.isArray(data.ingredients)) {
           setIngredients(data.ingredients.map((ing: any) => ({
             id: generateId(),
-            name: ing.name || 'Unknown',
+            name: ing.name || t.create.unknownIngredient,
             amount: ing.amount || 0,
             unit: (ing.unit || 'piece') as any,
           })));
@@ -295,10 +298,10 @@ export default function NewRecipeScreen() {
           setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
         }
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        Alert.alert('Success', 'Recipe details imported successfully!');
+        Alert.alert(t.create.importSuccess, t.create.importSuccessMsg);
       }
     } catch (err: any) {
-      Alert.alert('Import failed', 'Could not extract recipe from this URL.');
+      Alert.alert(t.create.importFailed, t.create.importFailedMsg);
     } finally {
       setImporting(false);
       setTempUrl('');
@@ -307,12 +310,12 @@ export default function NewRecipeScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Missing title', 'Please enter a recipe title.');
+      Alert.alert(t.create.missingTitle, t.create.missingTitleMsg);
       return;
     }
     const validIngredients = ingredients.filter(i => i.name.trim() && i.amount > 0);
     if (validIngredients.length === 0) {
-      Alert.alert('No ingredients', 'Please add at least one ingredient with a name and amount.');
+      Alert.alert(t.create.noIngredients, t.create.noIngredientsMsg);
       return;
     }
     setSaving(true);
@@ -357,13 +360,13 @@ export default function NewRecipeScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="close" size={26} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditing ? 'Edit Recipe' : 'Create Recipe'}</Text>
+        <Text style={styles.headerTitle}>{isEditing ? t.create.editRecipe : t.create.createRecipe}</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={saving}>
           <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.saveBtnGradient}>
             {saving ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.saveBtnText}>Save</Text>
+              <Text style={styles.saveBtnText}>{t.create.save}</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -386,14 +389,14 @@ export default function NewRecipeScreen() {
                       <Image source={{ uri: imageUri }} style={styles.photoPreview} resizeMode="cover" />
                       <View style={styles.photoOverlay}>
                         <Ionicons name="camera" size={24} color="#fff" />
-                        <Text style={styles.photoOverlayText}>Change Photo</Text>
+                        <Text style={styles.photoOverlayText}>{t.create.changePhoto}</Text>
                       </View>
                     </View>
                   ) : (
                     <LinearGradient colors={['#16213e', '#0f172a']} style={styles.photoPlaceholder}>
                       <Ionicons name="camera-outline" size={36} color="#334155" />
-                      <Text style={styles.photoPlaceholderText}>Add Recipe Photo</Text>
-                      <Text style={styles.photoPlaceholderSub}>Optional · Tap to add</Text>
+                      <Text style={styles.photoPlaceholderText}>{t.create.addPhoto}</Text>
+                      <Text style={styles.photoPlaceholderSub}>{t.create.addPhotoSub}</Text>
                     </LinearGradient>
                   )}
                 </TouchableOpacity>
@@ -401,10 +404,10 @@ export default function NewRecipeScreen() {
 
               {/* Basic info */}
               <Animated.View style={[styles.section, getAnimatedStyle(0)]}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionTitleRow}>
+                <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
+                  <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
                     <Ionicons name="information-circle" size={20} color="#f5a623" />
-                    <Text style={styles.sectionTitle}>General Info</Text>
+                    <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.generalInfo}</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.scanBtn}
@@ -420,7 +423,7 @@ export default function NewRecipeScreen() {
                       ) : (
                         <>
                           <Ionicons name="link" size={14} color="#f5a623" />
-                          <Text style={styles.scanBtnText}>Import URL</Text>
+                          <Text style={styles.scanBtnText}>{t.create.importUrl}</Text>
                         </>
                       )}
                     </LinearGradient>
@@ -428,75 +431,80 @@ export default function NewRecipeScreen() {
                 </View>
 
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.label}>Recipe Title</Text>
+                  <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.recipeTitle}</Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="e.g. Grandma's Secret Pasta"
+                    style={[styles.input, isRTL && styles.textRTL]}
+                    placeholder={t.create.recipeTitlePlaceholder}
                     placeholderTextColor="#475569"
                     value={title}
                     onChangeText={setTitle}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                 </View>
 
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.label}>Short Description</Text>
+                  <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.shortDescription}</Text>
                   <TextInput
-                    style={[styles.input, styles.multiline]}
-                    placeholder="Tell us about your masterpiece..."
+                    style={[styles.input, styles.multiline, isRTL && styles.textRTL]}
+                    placeholder={t.create.shortDescriptionPlaceholder}
                     placeholderTextColor="#475569"
                     value={description}
                     onChangeText={setDescription}
                     multiline
                     numberOfLines={3}
+                    textAlign={isRTL ? 'right' : 'left'}
                   />
                 </View>
 
-                <View style={styles.row}>
+                <View style={[styles.row, isRTL && styles.rowRTL]}>
                   <View style={styles.flex1}>
-                    <Text style={styles.label}>Servings</Text>
-                    <View style={styles.inputWithIcon}>
+                    <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.servings}</Text>
+                    <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
                       <Ionicons name="people-outline" size={16} color="#64748b" style={styles.inputIcon} />
                       <TextInput
-                        style={[styles.input, styles.inputNested]}
+                        style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={servings}
                         onChangeText={setServings}
                         placeholder="4"
                         placeholderTextColor="#475569"
+                        textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
                   </View>
-                  <View style={[styles.flex1, { marginLeft: 12 }]}>
-                    <Text style={styles.label}>Prep (min)</Text>
-                    <View style={styles.inputWithIcon}>
+                  <View style={[styles.flex1, isRTL ? styles.fieldGapRTL : styles.fieldGap]}>
+                    <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.prepMin}</Text>
+                    <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
                       <Ionicons name="time-outline" size={16} color="#64748b" style={styles.inputIcon} />
                       <TextInput
-                        style={[styles.input, styles.inputNested]}
+                        style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={prepTime}
                         onChangeText={setPrepTime}
                         placeholder="15"
                         placeholderTextColor="#475569"
+                        textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
                   </View>
-                  <View style={[styles.flex1, { marginLeft: 12 }]}>
-                    <Text style={styles.label}>Cook (min)</Text>
-                    <View style={styles.inputWithIcon}>
+                  <View style={[styles.flex1, isRTL ? styles.fieldGapRTL : styles.fieldGap]}>
+                    <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.cookMin}</Text>
+                    <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
                       <Ionicons name="flame-outline" size={16} color="#64748b" style={styles.inputIcon} />
                       <TextInput
-                        style={[styles.input, styles.inputNested]}
+                        style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={cookTime}
                         onChangeText={setCookTime}
                         placeholder="30"
                         placeholderTextColor="#475569"
+                        textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
                   </View>
                 </View>
 
-                <Text style={styles.label}>Category</Text>
+                <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.category}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
                   {CATEGORIES.filter(c => c !== 'All').map(cat => (
                     <TouchableOpacity
@@ -505,7 +513,7 @@ export default function NewRecipeScreen() {
                       onPress={() => setCategory(cat)}
                     >
                       <Text style={[styles.catChipText, category === cat && styles.catChipTextActive]}>
-                        {cat}
+                        {getCategoryLabel(t, cat)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -514,10 +522,10 @@ export default function NewRecipeScreen() {
 
               {/* Ingredients */}
               <Animated.View style={[styles.section, getAnimatedStyle(1)]}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionTitleRow}>
+                <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
+                  <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
                     <Ionicons name="list" size={20} color="#f5a623" />
-                    <Text style={styles.sectionTitle}>Ingredients</Text>
+                    <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.ingredients}</Text>
                   </View>
                   <TouchableOpacity style={styles.scanBtn} onPress={handleScanImage} disabled={scanning || importing}>
                     <LinearGradient
@@ -529,7 +537,7 @@ export default function NewRecipeScreen() {
                       ) : (
                         <>
                           <Ionicons name="sparkles" size={14} color="#f5a623" />
-                          <Text style={styles.scanBtnText}>AI Scan</Text>
+                          <Text style={styles.scanBtnText}>{t.create.aiScan}</Text>
                         </>
                       )}
                     </LinearGradient>
@@ -539,20 +547,22 @@ export default function NewRecipeScreen() {
                 {ingredients.map((ing, index) => (
                   <View key={ing.id} style={styles.ingredientCard}>
                     <TextInput
-                      style={[styles.input, styles.ingName]}
-                      placeholder="Ingredient name"
+                      style={[styles.input, styles.ingName, isRTL && styles.textRTL]}
+                      placeholder={t.create.ingredientName}
                       placeholderTextColor="#475569"
                       value={ing.name}
                       onChangeText={v => updateIngredient(index, 'name', v)}
+                      textAlign={isRTL ? 'right' : 'left'}
                     />
-                    <View style={styles.ingMetaRow}>
+                    <View style={[styles.ingMetaRow, isRTL && styles.rowRTL]}>
                       <TextInput
-                        style={[styles.input, styles.ingAmount]}
-                        placeholder="Amt"
+                        style={[styles.input, styles.ingAmount, isRTL && styles.textRTL]}
+                        placeholder={t.create.amount}
                         placeholderTextColor="#475569"
                         keyboardType="numeric"
                         value={ing.amount > 0 ? ing.amount.toString() : ''}
                         onChangeText={v => updateIngredient(index, 'amount', v)}
+                        textAlign={isRTL ? 'right' : 'left'}
                       />
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitScroll}>
                         {UNITS.map(u => (
@@ -574,24 +584,24 @@ export default function NewRecipeScreen() {
                   </View>
                 ))}
 
-                <TouchableOpacity style={styles.addBtn} onPress={addIngredient}>
+                <TouchableOpacity style={[styles.addBtn, isRTL && styles.rowRTL]} onPress={addIngredient}>
                   <View style={styles.addIconCircle}>
                     <Ionicons name="add" size={20} color="#f5a623" />
                   </View>
-                  <Text style={styles.addBtnText}>Add New Ingredient</Text>
+                  <Text style={[styles.addBtnText, isRTL && styles.textRTL]}>{t.create.addIngredient}</Text>
                 </TouchableOpacity>
               </Animated.View>
 
               {/* Steps */}
               <Animated.View style={[styles.section, getAnimatedStyle(2)]}>
-                <View style={styles.sectionTitleRow}>
+                <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
                   <Ionicons name="restaurant" size={20} color="#f5a623" />
-                  <Text style={styles.sectionTitle}>Preparation Steps</Text>
+                  <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.preparationSteps}</Text>
                 </View>
 
                 {steps.map((step, index) => (
                   <View key={index} style={styles.stepCard}>
-                    <View style={styles.stepHeader}>
+                    <View style={[styles.stepHeader, isRTL && styles.rowRTL]}>
                       <View style={styles.stepNumBadge}>
                         <Text style={styles.stepNumText}>{index + 1}</Text>
                       </View>
@@ -600,21 +610,22 @@ export default function NewRecipeScreen() {
                       </TouchableOpacity>
                     </View>
                     <TextInput
-                      style={[styles.input, styles.stepInput]}
-                      placeholder={`Describe step ${index + 1}...`}
+                      style={[styles.input, styles.stepInput, isRTL && styles.textRTL]}
+                      placeholder={t.create.stepPlaceholder}
                       placeholderTextColor="#475569"
                       value={step}
                       onChangeText={v => updateStep(index, v)}
                       multiline
+                      textAlign={isRTL ? 'right' : 'left'}
                     />
                   </View>
                 ))}
 
-                <TouchableOpacity style={styles.addBtn} onPress={addStep}>
+                <TouchableOpacity style={[styles.addBtn, isRTL && styles.rowRTL]} onPress={addStep}>
                   <View style={styles.addIconCircle}>
                     <Ionicons name="add" size={20} color="#f5a623" />
                   </View>
-                  <Text style={styles.addBtnText}>Add Another Step</Text>
+                  <Text style={[styles.addBtnText, isRTL && styles.textRTL]}>{t.create.addStep}</Text>
                 </TouchableOpacity>
               </Animated.View>
 
@@ -629,11 +640,11 @@ export default function NewRecipeScreen() {
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
               <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Import from URL</Text>
-                <Text style={styles.modalSubtitle}>Enter a recipe URL to extract all details automatically</Text>
+                <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.create.importFromUrl}</Text>
+                <Text style={[styles.modalSubtitle, isRTL && styles.textRTL]}>{t.create.importFromUrlSub}</Text>
                 <TextInput
-                  style={styles.modalInput}
-                  placeholder="https://example.com/recipe"
+                  style={[styles.modalInput, isRTL && styles.textRTL]}
+                  placeholder={t.create.urlPlaceholder}
                   placeholderTextColor="#475569"
                   value={tempUrl}
                   onChangeText={setTempUrl}
@@ -641,17 +652,18 @@ export default function NewRecipeScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                   onSubmitEditing={handleImportUrl}
+                  textAlign={isRTL ? 'right' : 'left'}
                 />
-                <View style={styles.modalButtons}>
+                <View style={[styles.modalButtons, isRTL && styles.rowRTL]}>
                   <TouchableOpacity
                     style={[styles.modalBtn, styles.modalBtnCancel]}
                     onPress={() => { setShowUrlModal(false); setTempUrl(''); }}
                   >
-                    <Text style={styles.modalBtnTextCancel}>Cancel</Text>
+                    <Text style={styles.modalBtnTextCancel}>{t.common.cancel}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm]} onPress={handleImportUrl}>
                     <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.modalBtnGradient}>
-                      <Text style={styles.modalBtnTextConfirm}>Import</Text>
+                      <Text style={styles.modalBtnTextConfirm}>{t.create.import}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -708,6 +720,11 @@ const styles = StyleSheet.create({
   },
   photoPlaceholderText: { color: '#475569', fontSize: 15, fontWeight: '600' },
   photoPlaceholderSub: { color: '#334155', fontSize: 12 },
+
+  textRTL: { textAlign: 'right', writingDirection: 'rtl' },
+  rowRTL: { flexDirection: 'row-reverse' },
+  fieldGap: { marginLeft: 12 },
+  fieldGapRTL: { marginRight: 12 },
 
   section: {
     backgroundColor: '#111827',
