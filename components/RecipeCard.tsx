@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../constants/theme';
@@ -198,7 +199,22 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
     </>
   );
 
-  return (
+  const renderRightActions = () => {
+    if (!onDelete) return null;
+    return (
+      <TouchableOpacity
+        style={styles.swipeDeleteContainer}
+        onPress={() => onDelete(recipe)}
+      >
+        <View style={styles.swipeDeleteAction}>
+          <Ionicons name="trash" size={24} color="#fff" />
+          <Text style={styles.swipeDeleteText}>{t.common.delete}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const cardContentInner = (
     <Animated.View
       style={[
         styles.cardContainer,
@@ -231,6 +247,20 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       </TouchableOpacity>
     </Animated.View>
   );
+
+  if (onDelete) {
+    return (
+      <Swipeable
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        containerStyle={{ overflow: 'visible' }}
+      >
+        {cardContentInner}
+      </Swipeable>
+    );
+  }
+
+  return cardContentInner;
 };
 
 const styles = StyleSheet.create({
@@ -377,5 +407,30 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryTintDark,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  swipeDeleteContainer: {
+    width: 90,
+    marginBottom: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swipeDeleteAction: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  swipeDeleteText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    marginTop: 2,
   },
 });

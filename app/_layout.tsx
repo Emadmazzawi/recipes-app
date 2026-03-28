@@ -14,6 +14,7 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { LanguageProvider } from '../contexts/LanguageContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 
 export {
@@ -132,17 +133,19 @@ export default function RootLayout() {
   }
 
   return (
-    <LanguageProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/index" options={{ headerShown: false }} />
-        <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="recipe/shared/[id]" options={{ headerShown: false, presentation: 'modal' }} />
-        <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
-        <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
-        <Stack.Screen name="recipe/pantry" options={{ headerShown: false, presentation: 'modal' }} />
-      </Stack>
-    </LanguageProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <LanguageProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/index" options={{ headerShown: false }} />
+          <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="recipe/shared/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
+          <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
+          <Stack.Screen name="recipe/pantry" options={{ headerShown: false, presentation: 'modal' }} />
+        </Stack>
+      </LanguageProvider>
+    </GestureHandlerRootView>
   );
 }
 
