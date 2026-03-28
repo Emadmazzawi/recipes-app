@@ -473,29 +473,33 @@ export default function RecipeDetailScreen() {
     extrapolate: 'clamp',
   });
 
+  const hasImage = !!(recipe.imageUri || recipe.unsplashImageUrl);
+  const heroTextColor = hasImage ? '#ffffff' : COLORS.textPrimary;
+  const heroMutedColor = hasImage ? 'rgba(255,255,255,0.8)' : COLORS.textSecondary;
+
   const heroContent = (
     <View style={styles.heroContent}>
       <View style={styles.categoryBadge}>
         <Text style={styles.categoryText}>{getCategoryLabel(t, recipe.category)}</Text>
       </View>
-      <Text style={[styles.heroTitle, isRTL && styles.textRTL]}>{getLocalizedTitle()}</Text>
+      <Text style={[styles.heroTitle, { color: heroTextColor }, isRTL && styles.textRTL]}>{getLocalizedTitle()}</Text>
 
       <View style={[styles.heroStats, isRTL && styles.rowRTL]}>
         <View style={styles.heroStatItem}>
-          <Ionicons name="time-outline" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.heroStatLabel}>{t.recipe.prep}</Text>
-          <Text style={styles.heroStatText}>{recipe.prepTime} {t.common.min}</Text>
+          <Ionicons name="time-outline" size={15} color={heroMutedColor} />
+          <Text style={[styles.heroStatLabel, { color: heroMutedColor }]}>{t.recipe.prep}</Text>
+          <Text style={[styles.heroStatText, { color: heroTextColor }]}>{recipe.prepTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
-          <Ionicons name="flame-outline" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.heroStatLabel}>{t.recipe.cook}</Text>
-          <Text style={styles.heroStatText}>{recipe.cookTime} {t.common.min}</Text>
+          <Ionicons name="flame-outline" size={15} color={heroMutedColor} />
+          <Text style={[styles.heroStatLabel, { color: heroMutedColor }]}>{t.recipe.cook}</Text>
+          <Text style={[styles.heroStatText, { color: heroTextColor }]}>{recipe.cookTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
           <Ionicons name="people" size={15} color={COLORS.primary} />
-          <Animated.Text style={[styles.heroStatText, { transform: [{ scale: pulseAnim }] }]}>
+          <Animated.Text style={[styles.heroStatText, { color: heroTextColor, transform: [{ scale: pulseAnim }] }]}>
             {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} {t.common.servings}
           </Animated.Text>
         </View>
