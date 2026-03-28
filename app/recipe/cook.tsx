@@ -32,9 +32,11 @@ export default function CookModeScreen() {
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [timerTotal, setTimerTotal] = useState(0);
+  
+  // Timers mapped by step index
+  type TimerState = { seconds: number; total: number; active: boolean };
+  const [timers, setTimers] = useState<Record<number, TimerState>>({});
+  
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [timerInput, setTimerInput] = useState('5');
 
@@ -45,18 +47,35 @@ export default function CookModeScreen() {
   }, []);
 
   useEffect(() => {
-    if (!timerActive) return;
-    if (timerSeconds <= 0) {
-      setTimerActive(false);
-      Vibration.vibrate([0, 400, 200, 400, 200, 400]);
-      Alert.alert(t.cook.timeUp, t.cook.timeUpMessage);
-      return;
-    }
     const interval = setInterval(() => {
-      setTimerSeconds(prev => prev - 1);
+      setTimers(prev => {
+        let changed = false;
+        const next = { ...prev };
+        
+        Object.keys(next).forEach(key => {
+          const stepIndex = parseInt(key);
+          const t = next[stepIndex];
+          
+          if (t.active && t.seconds > 0) {
+            changed = true;
+            next[stepIndex] = { ...t, seconds: t.seconds - 1 };
+            
+            if (next[stepIndex].seconds === 0) {
+              next[stepIndex].active = false;
+              Vibration.vibrate([0, 400, 200, 400, 200, 400]);
+              Alert.alert(
+                "Time's Up!", 
+                `Timer for step ${stepIndex + 1} is done!`
+              );
+            }
+          }
+        });
+        
+        return changed ? next : prev;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timerActive, timerSeconds]);
+  }, []);
 
   const loadRecipe = async () => {
     let found: Recipe | undefined;
@@ -94,18 +113,12 @@ export default function CookModeScreen() {
     const steps = getLocalizedSteps();
     if (!recipe || currentStep >= steps.length - 1) return;
     setCurrentStep(prev => prev + 1);
-    setTimerActive(false);
-    setTimerSeconds(0);
-    setTimerTotal(0);
     animateTransition();
   };
 
   const goPrev = () => {
     if (currentStep <= 0) return;
     setCurrentStep(prev => prev - 1);
-    setTimerActive(false);
-    setTimerSeconds(0);
-    setTimerTotal(0);
     animateTransition();
   };
 
@@ -117,9 +130,26 @@ export default function CookModeScreen() {
   };
 
   const startSmartTimer = (secs: number) => {
-    setTimerSeconds(secs);
-    setTimerTotal(secs);
-    setTimerActive(true);
+    setTimers(prev => ({
+      ...prev,
+      [currentStep]: { seconds: secs, total: secs, active: true }
+    }));
+  };
+
+  const toggleTimer = () => {
+    setTimers(prev => {
+      const t = prev[currentStep];
+      if (!t) return prev;
+      return { ...prev, [currentStep]: { ...t, active: !t.active } };
+    });
+  };
+
+  const resetCurrentTimer = () => {
+    setTimers(prev => {
+      const next = { ...prev };
+      delete next[currentStep];
+      return next;
+    });
   };
 
   const renderStepTextWithTimers = (text: string) => {
@@ -175,8 +205,9 @@ export default function CookModeScreen() {
   };
 
   const getTimerColor = () => {
-    if (timerTotal === 0) return '#f5a623';
-    const ratio = timerSeconds / timerTotal;
+    const t = timers[currentStep];
+    if (!t || t.total === 0) return '#f5a623';
+    const ratio = t.seconds / t.total;
     if (ratio > 0.5) return '#22c55e';
     if (ratio > 0.2) return '#f5a623';
     return '#ef4444';
@@ -280,20 +311,20 @@ export default function CookModeScreen() {
           </Animated.View>
 
           {/* Timer display */}
-          {(timerActive || timerSeconds > 0) && (
+          {timers[currentStep] && (timers[currentStep].active || timers[currentStep].seconds > 0) && (
             <View style={styles.timerDisplay}>
               <Text style={[styles.timerValue, { color: getTimerColor() }]}>
-                {formatTime(timerSeconds)}
+                {formatTime(timers[currentStep].seconds)}
               </Text>
               <View style={styles.timerControls}>
                 <TouchableOpacity
-                  onPress={() => setTimerActive(!timerActive)}
+                  onPress={toggleTimer}
                   style={styles.timerControlBtn}
                 >
-                  <Ionicons name={timerActive ? 'pause' : 'play'} size={24} color={COLORS.primary} />
+                  <Ionicons name={timers[currentStep].active ? 'pause' : 'play'} size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => { setTimerActive(false); setTimerSeconds(0); setTimerTotal(0); }}
+                  onPress={resetCurrentTimer}
                   style={[styles.timerControlBtn, styles.timerResetBtn]}
                 >
                   <Ionicons name="refresh" size={22} color={COLORS.textMuted} />
