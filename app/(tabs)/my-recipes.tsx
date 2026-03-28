@@ -13,13 +13,17 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Share,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { getPersonalRecipes, deletePersonalRecipe, getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
+import { supabase } from '../../lib/supabase';
 import { Recipe } from '../../types';
 import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
+import { SettingsModal } from '../../components/SettingsModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -37,6 +41,7 @@ export default function MyRecipesScreen() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [importUrl, setImportUrl] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const fabScale = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
@@ -92,6 +97,54 @@ export default function MyRecipesScreen() {
     router.push({ pathname: '/recipe/new', params: { editId: recipe.id } });
   };
 
+  const handleShare = async (recipe: Recipe) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        Alert.alert('Sign In Required', 'You must create an account to share recipes with others.');
+        return;
+      }
+
+      // Ensure the recipe exists in Supabase
+      const dbRecipe = {
+        id: recipe.id,
+        user_id: session.user.id,
+        title: recipe.title,
+        description: recipe.description,
+        servings: recipe.servings,
+        prep_time: recipe.prepTime,
+        cook_time: recipe.cookTime,
+        category: recipe.category,
+        image_uri: recipe.imageUri,
+        unsplash_image_url: recipe.unsplashImageUrl,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        created_at: recipe.createdAt
+      };
+
+      const { error } = await supabase
+        .from('recipes')
+        .upsert(dbRecipe, { onConflict: 'id' });
+        
+      if (error) {
+        console.error('Supabase upsert error:', error);
+        throw error;
+      }
+
+      // Generate deep link
+      const redirectUrl = Linking.createURL(`recipe/shared/${recipe.id}`);
+
+      await Share.share({
+        message: `${t.explore?.greeting || 'Check out this recipe'} ${recipe.title}: ${redirectUrl}\n\nOr paste this code in the Import box: ${recipe.id}`,
+        url: redirectUrl,
+      });
+    } catch (error: any) {
+      console.error('Error sharing recipe:', error);
+      Alert.alert(t.common.error || 'Error', error.message || 'Could not share recipe.');
+    }
+  };
+
   const toggleFavorite = async (id: string) => {
     if (favorites.includes(id)) {
       await removeFavorite(id);
@@ -133,12 +186,21 @@ export default function MyRecipesScreen() {
           !isLoading ? (
             <View>
               <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
-                <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.library.title}</Text>
-                <View style={styles.statBadge}>
-                  <Text style={styles.statText}>
-                    {recipes.length} {recipes.length === 1 ? t.library.recipe : t.library.recipes}
-                  </Text>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.library.title}</Text>
+                  <View style={styles.statBadge}>
+                    <Text style={styles.statText}>
+                      {recipes.length} {recipes.length === 1 ? t.library.recipe : t.library.recipes}
+                    </Text>
+                  </View>
                 </View>
+                <TouchableOpacity
+                  onPress={() => setShowSettings(true)}
+                  style={styles.gearBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="settings-outline" size={22} color={COLORS.textSecondary} />
+                </TouchableOpacity>
               </View>
 
               {/* URL Extractor */}
@@ -219,6 +281,7 @@ export default function MyRecipesScreen() {
               onPress={openRecipe}
               onDelete={handleDelete}
               onEdit={handleEdit}
+              onShare={handleShare}
               onToggleFavorite={toggleFavorite}
               isFavorited={favorites.includes((item as Recipe).id)}
               index={index}
@@ -266,6 +329,11 @@ export default function MyRecipesScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
+
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -283,6 +351,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Inter_800ExtraBold',
     letterSpacing: -0.5,
+    marginRight: 12,
   },
   statBadge: {
     backgroundColor: COLORS.primaryTint,
@@ -298,6 +367,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  gearBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   extractorCard: {

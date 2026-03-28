@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   useFonts,
   Inter_400Regular,
@@ -13,6 +14,7 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { LanguageProvider } from '../contexts/LanguageContext';
+import * as Linking from 'expo-linking';
 
 export {
   ErrorBoundary,
@@ -21,6 +23,7 @@ export {
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
@@ -34,16 +37,62 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setInitialized(true);
-    }).catch(() => {
-      setInitialized(true);
+    const initAuth = async () => {
+      try {
+        const guestStatus = await AsyncStorage.getItem('is_guest');
+        setIsGuest(guestStatus === 'true');
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setInitialized(true);
+      }
+    };
+    
+    initAuth();
+
+    // Listen for deep links so that Supabase can extract the session from the URL hash 
+    // when coming back from a password reset email
+    const handleDeepLink = (event: { url: string }) => {
+      const url = event.url;
+      try {
+        if (url.includes('#access_token=') || url.includes('?access_token=')) {
+          // Manually parse tokens from URL 
+          const hashMatch = url.match(/access_token=([^&]+)/);
+          const refreshMatch = url.match(/refresh_token=([^&]+)/);
+          
+          if (hashMatch && hashMatch[1] && refreshMatch && refreshMatch[1]) {
+            supabase.auth.setSession({
+              access_token: hashMatch[1],
+              refresh_token: refreshMatch[1],
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Deep link handling error:', err);
+      }
+    };
+    
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Also check the initial URL in case the app was fully closed
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
-      setInitialized(true);
+      if (session) {
+        setIsGuest(false);
+        await AsyncStorage.removeItem('is_guest');
+      }
+      
+      // If user clicked a password reset link, send them to the reset password screen
+      if (event === 'PASSWORD_RECOVERY') {
+        router.push('/auth/update-password');
+      }
     });
 
     return () => {
@@ -54,9 +103,17 @@ export default function RootLayout() {
   useEffect(() => {
     if (!initialized) return;
     const inAuthGroup = segments[0] === 'auth';
-    const timeout = setTimeout(() => {
+    
+    const timeout = setTimeout(async () => {
       try {
-        if (session && inAuthGroup) {
+        const guestStatus = await AsyncStorage.getItem('is_guest');
+        const currentIsGuest = guestStatus === 'true';
+
+        if (!session && !currentIsGuest && !inAuthGroup) {
+          // Redirect to auth if not logged in and not a guest
+          router.replace('/auth');
+        } else if (session && inAuthGroup) {
+          // Redirect away from auth if logged in
           router.replace('/(tabs)');
         }
       } catch (e) {
@@ -80,6 +137,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth/index" options={{ headerShown: false }} />
         <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="recipe/shared/[id]" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
         <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
       </Stack>

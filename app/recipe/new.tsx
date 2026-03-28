@@ -27,10 +27,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { savePersonalRecipe, getPersonalRecipes } from '../../lib/storage';
 import { Recipe, Ingredient } from '../../types';
 import { CATEGORIES } from '../../constants/recipes';
-import { scanIngredientsFromImage, importRecipeFromUrl } from '../../lib/gemini';
+import { scanIngredientsFromImage, importRecipeFromUrl, fetchUnsplashImage } from '../../lib/gemini';
+import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
+import { COLORS } from '../../constants/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -62,6 +64,7 @@ export default function NewRecipeScreen() {
   const [steps, setSteps] = useState<string[]>(['']);
   const [originalId, setOriginalId] = useState<string | undefined>(undefined);
   const [originalCreatedAt, setOriginalCreatedAt] = useState<string | undefined>(undefined);
+  const [unsplashImageUrl, setUnsplashImageUrl] = useState<string | undefined>(undefined);
 
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -88,31 +91,86 @@ export default function NewRecipeScreen() {
     )).start();
   }, []);
 
+  const populateFromData = (data: any) => {
+    setTitle(data.title || '');
+    setDescription(data.description || '');
+    setServings(data.servings?.toString() || '4');
+    setPrepTime(data.prepTime?.toString() || '0');
+    setCookTime(data.cookTime?.toString() || '0');
+    setCategory(data.category || 'Other');
+    
+    if (data.imageUri && !data.unsplashImageUrl) {
+        setImageUri(data.imageUri);
+    }
+    if (data.unsplashImageUrl) {
+        setUnsplashImageUrl(data.unsplashImageUrl);
+    }
+
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+      setIngredients(data.ingredients.map((ing: any) => ({
+        id: generateId(),
+        name: ing.name || t.create.unknownIngredient,
+        amount: ing.amount || 0,
+        unit: (ing.unit || 'piece') as any,
+      })));
+    }
+    if (data.steps && Array.isArray(data.steps)) {
+      setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Alert.alert(t.create.importSuccess, t.create.importSuccessMsg);
+  };
+
+  const handleSharedIdOrUrl = async (input: string) => {
+    // Check if input is a UUID or contains a UUID (from our share link)
+    const uuidMatch = input.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    
+    if (uuidMatch) {
+      const sharedId = uuidMatch[0];
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('id', sharedId)
+        .single();
+        
+      if (!error && data) {
+        // Map DB structure to our internal structure
+        let parsedIngredients = [];
+        let parsedSteps = [];
+        try {
+          parsedIngredients = typeof data.ingredients === 'string' ? JSON.parse(data.ingredients) : data.ingredients;
+        } catch (e) {}
+        try {
+          parsedSteps = typeof data.steps === 'string' ? JSON.parse(data.steps) : data.steps;
+        } catch (e) {}
+
+        return {
+          title: data.title,
+          description: data.description,
+          servings: data.servings,
+          prepTime: data.prep_time,
+          cookTime: data.cook_time,
+          category: data.category,
+          imageUri: data.image_uri,
+          unsplashImageUrl: data.unsplash_image_url,
+          ingredients: parsedIngredients,
+          steps: parsedSteps,
+        };
+      }
+    }
+    
+    // Fallback to Gemini web scraping
+    return await importRecipeFromUrl(input);
+  };
+
   const handleImportFromParam = async (url: string) => {
     setImporting(true);
     try {
-      const data = await importRecipeFromUrl(url);
-      if (data) {
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setServings(data.servings?.toString() || '4');
-        setPrepTime(data.prepTime?.toString() || '0');
-        setCookTime(data.cookTime?.toString() || '0');
-        setCategory(data.category || 'Other');
-        if (data.ingredients && Array.isArray(data.ingredients)) {
-          setIngredients(data.ingredients.map((ing: any) => ({
-            id: generateId(),
-            name: ing.name || t.create.unknownIngredient,
-            amount: ing.amount || 0,
-            unit: (ing.unit || 'piece') as any,
-          })));
-        }
-        if (data.steps && Array.isArray(data.steps)) {
-          setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
-        }
-      }
-    } catch (err) {
-      Alert.alert(t.create.importFailed, t.create.importFailedMsg);
+      const data = await handleSharedIdOrUrl(url);
+      if (data) populateFromData(data);
+    } catch (err: any) {
+      console.error("Param import failed", err);
+      Alert.alert(t.create.importFailed, err.message || t.create.importFailedMsg);
     } finally {
       setImporting(false);
     }
@@ -133,6 +191,7 @@ export default function NewRecipeScreen() {
       setCookTime(recipe.cookTime.toString());
       setCategory(recipe.category);
       setImageUri(recipe.imageUri);
+      setUnsplashImageUrl(recipe.unsplashImageUrl);
       setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : [{ id: generateId(), name: '', amount: 0, unit: 'g' }]);
       setSteps(recipe.steps.length > 0 ? recipe.steps : ['']);
     } catch (err) {
@@ -278,33 +337,22 @@ export default function NewRecipeScreen() {
     setShowUrlModal(false);
     setImporting(true);
     try {
-      const data = await importRecipeFromUrl(tempUrl);
-      if (data) {
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setServings(data.servings?.toString() || '4');
-        setPrepTime(data.prepTime?.toString() || '0');
-        setCookTime(data.cookTime?.toString() || '0');
-        setCategory(data.category || 'Other');
-        if (data.ingredients && Array.isArray(data.ingredients)) {
-          setIngredients(data.ingredients.map((ing: any) => ({
-            id: generateId(),
-            name: ing.name || t.create.unknownIngredient,
-            amount: ing.amount || 0,
-            unit: (ing.unit || 'piece') as any,
-          })));
-        }
-        if (data.steps && Array.isArray(data.steps)) {
-          setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
-        }
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        Alert.alert(t.create.importSuccess, t.create.importSuccessMsg);
-      }
+      const data = await handleSharedIdOrUrl(tempUrl);
+      if (data) populateFromData(data);
     } catch (err: any) {
-      Alert.alert(t.create.importFailed, t.create.importFailedMsg);
+      console.error("Manual import failed", err);
+      Alert.alert(t.create.importFailed, err.message || t.create.importFailedMsg);
     } finally {
       setImporting(false);
       setTempUrl('');
+    }
+  };
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/my-recipes');
     }
   };
 
@@ -319,6 +367,15 @@ export default function NewRecipeScreen() {
       return;
     }
     setSaving(true);
+    
+    let finalUnsplashUrl = unsplashImageUrl;
+    if (!imageUri && !finalUnsplashUrl) {
+      const fetchedUrl = await fetchUnsplashImage(title.trim());
+      if (fetchedUrl) {
+        finalUnsplashUrl = fetchedUrl;
+      }
+    }
+
     const recipe: Recipe = {
       id: originalId || generateId(),
       title: title.trim(),
@@ -332,10 +389,17 @@ export default function NewRecipeScreen() {
       isBuiltIn: false,
       createdAt: originalCreatedAt || new Date().toISOString(),
       imageUri,
+      unsplashImageUrl: finalUnsplashUrl,
     };
-    await savePersonalRecipe(recipe);
-    setSaving(false);
-    router.back();
+    try {
+      await savePersonalRecipe(recipe);
+      setSaving(false);
+      goBack();
+    } catch (err: any) {
+      console.error('Error saving recipe:', err);
+      Alert.alert(t.common?.error || 'Error', err.message || 'Failed to save recipe');
+      setSaving(false);
+    }
   };
 
   const getAnimatedStyle = (idx: number) => ({
@@ -347,7 +411,7 @@ export default function NewRecipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color="#f5a623" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       </SafeAreaView>
     );
@@ -355,14 +419,14 @@ export default function NewRecipeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="close" size={26} color="#64748b" />
+        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+          <Ionicons name="close" size={26} color={COLORS.textMuted} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEditing ? t.create.editRecipe : t.create.createRecipe}</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={saving}>
-          <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.saveBtnGradient}>
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.saveBtnGradient}>
             {saving ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -393,8 +457,8 @@ export default function NewRecipeScreen() {
                       </View>
                     </View>
                   ) : (
-                    <LinearGradient colors={['#16213e', '#0f172a']} style={styles.photoPlaceholder}>
-                      <Ionicons name="camera-outline" size={36} color="#334155" />
+                    <LinearGradient colors={[COLORS.surfaceDeep, COLORS.bg]} style={styles.photoPlaceholder}>
+                      <Ionicons name="camera-outline" size={36} color={COLORS.textFaint} />
                       <Text style={styles.photoPlaceholderText}>{t.create.addPhoto}</Text>
                       <Text style={styles.photoPlaceholderSub}>{t.create.addPhotoSub}</Text>
                     </LinearGradient>
@@ -406,7 +470,7 @@ export default function NewRecipeScreen() {
               <Animated.View style={[styles.section, getAnimatedStyle(0)]}>
                 <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
                   <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
-                    <Ionicons name="information-circle" size={20} color="#f5a623" />
+                    <Ionicons name="information-circle" size={20} color={COLORS.primary} />
                     <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.generalInfo}</Text>
                   </View>
                   <TouchableOpacity
@@ -415,14 +479,14 @@ export default function NewRecipeScreen() {
                     disabled={importing || scanning}
                   >
                     <LinearGradient
-                      colors={['rgba(245, 166, 35, 0.15)', 'rgba(245, 166, 35, 0.05)']}
+                      colors={[COLORS.primaryTint, 'transparent']}
                       style={styles.scanBtnGradient}
                     >
                       {importing ? (
-                        <ActivityIndicator size="small" color="#f5a623" />
+                        <ActivityIndicator size="small" color={COLORS.primary} />
                       ) : (
                         <>
-                          <Ionicons name="link" size={14} color="#f5a623" />
+                          <Ionicons name="link" size={14} color={COLORS.primary} />
                           <Text style={styles.scanBtnText}>{t.create.importUrl}</Text>
                         </>
                       )}
@@ -435,7 +499,7 @@ export default function NewRecipeScreen() {
                   <TextInput
                     style={[styles.input, isRTL && styles.textRTL]}
                     placeholder={t.create.recipeTitlePlaceholder}
-                    placeholderTextColor="#475569"
+                    placeholderTextColor={COLORS.textFaint}
                     value={title}
                     onChangeText={setTitle}
                     textAlign={isRTL ? 'right' : 'left'}
@@ -447,7 +511,7 @@ export default function NewRecipeScreen() {
                   <TextInput
                     style={[styles.input, styles.multiline, isRTL && styles.textRTL]}
                     placeholder={t.create.shortDescriptionPlaceholder}
-                    placeholderTextColor="#475569"
+                    placeholderTextColor={COLORS.textFaint}
                     value={description}
                     onChangeText={setDescription}
                     multiline
@@ -460,14 +524,14 @@ export default function NewRecipeScreen() {
                   <View style={styles.flex1}>
                     <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.servings}</Text>
                     <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
-                      <Ionicons name="people-outline" size={16} color="#64748b" style={styles.inputIcon} />
+                      <Ionicons name="people-outline" size={16} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={servings}
                         onChangeText={setServings}
                         placeholder="4"
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={COLORS.textFaint}
                         textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
@@ -475,14 +539,14 @@ export default function NewRecipeScreen() {
                   <View style={[styles.flex1, isRTL ? styles.fieldGapRTL : styles.fieldGap]}>
                     <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.prepMin}</Text>
                     <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
-                      <Ionicons name="time-outline" size={16} color="#64748b" style={styles.inputIcon} />
+                      <Ionicons name="time-outline" size={16} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={prepTime}
                         onChangeText={setPrepTime}
                         placeholder="15"
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={COLORS.textFaint}
                         textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
@@ -490,14 +554,14 @@ export default function NewRecipeScreen() {
                   <View style={[styles.flex1, isRTL ? styles.fieldGapRTL : styles.fieldGap]}>
                     <Text style={[styles.label, isRTL && styles.textRTL]}>{t.create.cookMin}</Text>
                     <View style={[styles.inputWithIcon, isRTL && styles.rowRTL]}>
-                      <Ionicons name="flame-outline" size={16} color="#64748b" style={styles.inputIcon} />
+                      <Ionicons name="flame-outline" size={16} color={COLORS.textMuted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, styles.inputNested, isRTL && styles.textRTL]}
                         keyboardType="numeric"
                         value={cookTime}
                         onChangeText={setCookTime}
                         placeholder="30"
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={COLORS.textFaint}
                         textAlign={isRTL ? 'right' : 'left'}
                       />
                     </View>
@@ -524,19 +588,19 @@ export default function NewRecipeScreen() {
               <Animated.View style={[styles.section, getAnimatedStyle(1)]}>
                 <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
                   <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
-                    <Ionicons name="list" size={20} color="#f5a623" />
+                    <Ionicons name="list" size={20} color={COLORS.primary} />
                     <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.ingredients}</Text>
                   </View>
                   <TouchableOpacity style={styles.scanBtn} onPress={handleScanImage} disabled={scanning || importing}>
                     <LinearGradient
-                      colors={['rgba(245, 166, 35, 0.15)', 'rgba(245, 166, 35, 0.05)']}
+                      colors={[COLORS.primaryTint, 'transparent']}
                       style={styles.scanBtnGradient}
                     >
                       {scanning ? (
-                        <ActivityIndicator size="small" color="#f5a623" />
+                        <ActivityIndicator size="small" color={COLORS.primary} />
                       ) : (
                         <>
-                          <Ionicons name="sparkles" size={14} color="#f5a623" />
+                          <Ionicons name="sparkles" size={14} color={COLORS.primary} />
                           <Text style={styles.scanBtnText}>{t.create.aiScan}</Text>
                         </>
                       )}
@@ -549,7 +613,7 @@ export default function NewRecipeScreen() {
                     <TextInput
                       style={[styles.input, styles.ingName, isRTL && styles.textRTL]}
                       placeholder={t.create.ingredientName}
-                      placeholderTextColor="#475569"
+                      placeholderTextColor={COLORS.textFaint}
                       value={ing.name}
                       onChangeText={v => updateIngredient(index, 'name', v)}
                       textAlign={isRTL ? 'right' : 'left'}
@@ -558,7 +622,7 @@ export default function NewRecipeScreen() {
                       <TextInput
                         style={[styles.input, styles.ingAmount, isRTL && styles.textRTL]}
                         placeholder={t.create.amount}
-                        placeholderTextColor="#475569"
+                        placeholderTextColor={COLORS.textFaint}
                         keyboardType="numeric"
                         value={ing.amount > 0 ? ing.amount.toString() : ''}
                         onChangeText={v => updateIngredient(index, 'amount', v)}
@@ -578,7 +642,7 @@ export default function NewRecipeScreen() {
                         ))}
                       </ScrollView>
                       <TouchableOpacity onPress={() => removeIngredient(index)} style={styles.removeBtn}>
-                        <Ionicons name="trash" size={18} color="#ef4444" />
+                        <Ionicons name="trash" size={18} color={COLORS.error} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -586,7 +650,7 @@ export default function NewRecipeScreen() {
 
                 <TouchableOpacity style={[styles.addBtn, isRTL && styles.rowRTL]} onPress={addIngredient}>
                   <View style={styles.addIconCircle}>
-                    <Ionicons name="add" size={20} color="#f5a623" />
+                    <Ionicons name="add" size={20} color={COLORS.primary} />
                   </View>
                   <Text style={[styles.addBtnText, isRTL && styles.textRTL]}>{t.create.addIngredient}</Text>
                 </TouchableOpacity>
@@ -595,7 +659,7 @@ export default function NewRecipeScreen() {
               {/* Steps */}
               <Animated.View style={[styles.section, getAnimatedStyle(2)]}>
                 <View style={[styles.sectionTitleRow, isRTL && styles.rowRTL]}>
-                  <Ionicons name="restaurant" size={20} color="#f5a623" />
+                  <Ionicons name="restaurant" size={20} color={COLORS.primary} />
                   <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.create.preparationSteps}</Text>
                 </View>
 
@@ -606,13 +670,13 @@ export default function NewRecipeScreen() {
                         <Text style={styles.stepNumText}>{index + 1}</Text>
                       </View>
                       <TouchableOpacity onPress={() => removeStep(index)} style={styles.removeBtn}>
-                        <Ionicons name="trash" size={16} color="#ef4444" />
+                        <Ionicons name="trash" size={16} color={COLORS.error} />
                       </TouchableOpacity>
                     </View>
                     <TextInput
                       style={[styles.input, styles.stepInput, isRTL && styles.textRTL]}
                       placeholder={t.create.stepPlaceholder}
-                      placeholderTextColor="#475569"
+                      placeholderTextColor={COLORS.textFaint}
                       value={step}
                       onChangeText={v => updateStep(index, v)}
                       multiline
@@ -623,7 +687,7 @@ export default function NewRecipeScreen() {
 
                 <TouchableOpacity style={[styles.addBtn, isRTL && styles.rowRTL]} onPress={addStep}>
                   <View style={styles.addIconCircle}>
-                    <Ionicons name="add" size={20} color="#f5a623" />
+                    <Ionicons name="add" size={20} color={COLORS.primary} />
                   </View>
                   <Text style={[styles.addBtnText, isRTL && styles.textRTL]}>{t.create.addStep}</Text>
                 </TouchableOpacity>
@@ -645,7 +709,7 @@ export default function NewRecipeScreen() {
                 <TextInput
                   style={[styles.modalInput, isRTL && styles.textRTL]}
                   placeholder={t.create.urlPlaceholder}
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={COLORS.textFaint}
                   value={tempUrl}
                   onChangeText={setTempUrl}
                   autoFocus
@@ -662,7 +726,7 @@ export default function NewRecipeScreen() {
                     <Text style={styles.modalBtnTextCancel}>{t.common.cancel}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm]} onPress={handleImportUrl}>
-                    <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.modalBtnGradient}>
+                    <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.modalBtnGradient}>
                       <Text style={styles.modalBtnTextConfirm}>{t.create.import}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -677,7 +741,7 @@ export default function NewRecipeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -686,10 +750,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: COLORS.border,
   },
   backBtn: { padding: 6 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  headerTitle: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '800' },
   saveBtn: { borderRadius: 12, overflow: 'hidden' },
   saveBtnGradient: { paddingHorizontal: 20, paddingVertical: 10 },
   saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
@@ -714,12 +778,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
     borderStyle: 'dashed',
     gap: 8,
   },
-  photoPlaceholderText: { color: '#475569', fontSize: 15, fontWeight: '600' },
-  photoPlaceholderSub: { color: '#334155', fontSize: 12 },
+  photoPlaceholderText: { color: COLORS.textMuted, fontSize: 15, fontWeight: '600' },
+  photoPlaceholderSub: { color: COLORS.textFaint, fontSize: 12 },
 
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   rowRTL: { flexDirection: 'row-reverse' },
@@ -727,12 +791,12 @@ const styles = StyleSheet.create({
   fieldGapRTL: { marginRight: 12 },
 
   section: {
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.card,
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
+    borderColor: COLORS.border,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -741,7 +805,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  sectionTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  sectionTitle: { color: COLORS.textPrimary, fontSize: 17, fontWeight: '800' },
 
   scanBtn: { borderRadius: 10, overflow: 'hidden' },
   scanBtnGradient: {
@@ -751,24 +815,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  scanBtnText: { color: '#f5a623', fontSize: 13, fontWeight: '700' },
+  scanBtnText: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
 
   inputWrapper: { marginBottom: 16 },
-  label: { color: '#94a3b8', fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  label: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600', marginBottom: 8 },
   input: {
-    backgroundColor: '#1e293b',
+    backgroundColor: COLORS.surfaceDeep,
     borderRadius: 12,
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 15,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: COLORS.border,
   },
   multiline: { height: 80, textAlignVertical: 'top' },
   row: { flexDirection: 'row', marginBottom: 16 },
   flex1: { flex: 1 },
-  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 10 },
+  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceDeep, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 10 },
   inputIcon: { marginRight: 6 },
   inputNested: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4 },
 
@@ -777,13 +841,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#1e293b',
+    backgroundColor: COLORS.surfaceDeep,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
-  catChipActive: { backgroundColor: '#f5a623', borderColor: '#f5a623' },
-  catChipText: { color: '#64748b', fontSize: 13, fontWeight: '700' },
+  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  catChipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '700' },
   catChipTextActive: { color: '#fff' },
 
   ingredientCard: { marginBottom: 12 },
@@ -795,13 +859,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#1e293b',
+    backgroundColor: COLORS.surfaceDeep,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
-  unitChipActive: { backgroundColor: '#f5a623', borderColor: '#f5a623' },
-  unitChipText: { color: '#64748b', fontSize: 12, fontWeight: '700' },
+  unitChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  unitChipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
   unitChipTextActive: { color: '#fff' },
   removeBtn: { padding: 8 },
 
@@ -810,37 +874,37 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(245,166,35,0.1)',
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(245,166,35,0.3)',
+    borderColor: COLORS.primaryTintDark,
   },
-  addBtnText: { color: '#f5a623', fontSize: 15, fontWeight: '700' },
+  addBtnText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
 
-  stepCard: { backgroundColor: '#1e293b', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  stepCard: { backgroundColor: COLORS.surfaceDeep, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   stepHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   stepNumBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(245,166,35,0.2)',
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepNumText: { color: '#f5a623', fontSize: 13, fontWeight: '800' },
+  stepNumText: { color: COLORS.primary, fontSize: 13, fontWeight: '800' },
   stepInput: { backgroundColor: 'transparent', borderWidth: 0, minHeight: 60, textAlignVertical: 'top', paddingHorizontal: 0, paddingVertical: 0 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContent: { backgroundColor: '#16213e', borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  modalTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
-  modalSubtitle: { color: '#64748b', fontSize: 14, marginBottom: 20, lineHeight: 20 },
-  modalInput: { backgroundColor: '#0f172a', borderRadius: 12, color: '#fff', fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', marginBottom: 20 },
+  modalContent: { backgroundColor: COLORS.card, borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: COLORS.border },
+  modalTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 6 },
+  modalSubtitle: { color: COLORS.textSecondary, fontSize: 14, marginBottom: 20, lineHeight: 20 },
+  modalInput: { backgroundColor: COLORS.surfaceDeep, borderRadius: 12, color: COLORS.textPrimary, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 20 },
   modalButtons: { flexDirection: 'row', gap: 12 },
   modalBtn: { flex: 1, borderRadius: 12, overflow: 'hidden' },
-  modalBtnCancel: { backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center', paddingVertical: 14 },
+  modalBtnCancel: { backgroundColor: COLORS.surfaceDeep, justifyContent: 'center', alignItems: 'center', paddingVertical: 14 },
   modalBtnConfirm: {},
   modalBtnGradient: { paddingVertical: 14, justifyContent: 'center', alignItems: 'center' },
-  modalBtnTextCancel: { color: '#94a3b8', fontSize: 15, fontWeight: '700' },
+  modalBtnTextCancel: { color: COLORS.textMuted, fontSize: 15, fontWeight: '700' },
   modalBtnTextConfirm: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +12,7 @@ interface RecipeCardProps {
   onPress: (recipe: Recipe) => void;
   onDelete?: (recipe: Recipe) => void;
   onEdit?: (recipe: Recipe) => void;
+  onShare?: (recipe: Recipe) => void;
   onToggleFavorite?: (id: string) => void;
   isFavorited?: boolean;
   categoryColor?: string;
@@ -24,6 +25,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   onPress,
   onDelete,
   onEdit,
+  onShare,
   onToggleFavorite,
   isFavorited = false,
   categoryColor,
@@ -86,6 +88,115 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const localizedTitle = getLocalizedTitle();
   const localizedDescription = getLocalizedDescription();
+  const imageUrl = recipe.unsplashImageUrl || recipe.imageUri;
+
+  const renderCardContent = () => (
+    <>
+      <View style={[styles.cardHeader, isRTL && styles.cardHeaderRTL]}>
+        {categoryColor ? (
+          <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '25' }]}>
+            <View style={[styles.dot, { backgroundColor: categoryColor }]} />
+            <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
+              {getCategoryLabel(t, recipe.category)}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
+
+        <View style={[styles.headerRight, isRTL && styles.headerRightRTL]}>
+          <View style={styles.timeContainer}>
+            <Ionicons name="time-outline" size={13} color={COLORS.primary} />
+            <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} {t.common.min}</Text>
+          </View>
+          {onToggleFavorite && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); handleFavorite(); }}
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Animated.View style={{ transform: [{ scale: favoriteScale }] }}>
+                <Ionicons
+                  name={isFavorited ? 'heart' : 'heart-outline'}
+                  size={19}
+                  color={isFavorited ? '#ef4444' : COLORS.textMuted}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          )}
+          {onShare && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); onShare(recipe); }}
+              style={[styles.iconBtn, styles.shareBtn]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="share-outline" size={15} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+          {onEdit && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); onEdit(recipe); }}
+              style={[styles.iconBtn, styles.editBtn]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="pencil" size={15} color={COLORS.purple} />
+            </TouchableOpacity>
+          )}
+          {onDelete && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); onDelete(recipe); }}
+              style={[styles.iconBtn, styles.deleteBtn]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash" size={15} color={COLORS.error} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      <Text style={[styles.cardTitle, isRTL && styles.textRTL, imageUrl && styles.textWhite]} numberOfLines={1}>{localizedTitle}</Text>
+
+      {reason ? (
+        <View style={styles.reasonContainer}>
+          <LinearGradient
+            colors={[COLORS.primaryTint, COLORS.primaryTintDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.reasonGradient}
+          >
+            <Ionicons name="sparkles" size={13} color={COLORS.primary} />
+            <Text style={[styles.reasonText, isRTL && styles.textRTL]} numberOfLines={1}>{reason}</Text>
+          </LinearGradient>
+        </View>
+      ) : (
+        <Text style={[styles.cardDesc, isRTL && styles.textRTL, imageUrl && styles.textWhiteLight]} numberOfLines={2}>
+          {localizedDescription || t.common.noDescription}
+        </Text>
+      )}
+
+      <View style={[styles.divider, imageUrl && styles.dividerLight]} />
+
+      <View style={[styles.cardFooter, isRTL && styles.cardFooterRTL]}>
+        <View style={styles.footerItem}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="people" size={12} color={COLORS.primary} />
+          </View>
+          <Text style={[styles.footerText, imageUrl && styles.textWhite]}>{recipe.servings} {t.common.servings}</Text>
+        </View>
+        <View style={styles.footerItem}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="restaurant" size={12} color={COLORS.primary} />
+          </View>
+          <Text style={[styles.footerText, imageUrl && styles.textWhite]}>{recipe.ingredients.length} {t.common.items}</Text>
+        </View>
+        {!onDelete && !onEdit && (
+          <View style={styles.arrowIcon}>
+            <Ionicons name={isRTL ? 'arrow-back' : 'arrow-forward'} size={15} color={COLORS.primary} />
+          </View>
+        )}
+      </View>
+    </>
+  );
 
   return (
     <Animated.View
@@ -100,102 +211,23 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <LinearGradient colors={[COLORS.card, COLORS.cardDeep]} style={styles.card}>
-          <View style={[styles.cardHeader, isRTL && styles.cardHeaderRTL]}>
-            {categoryColor ? (
-              <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '25' }]}>
-                <View style={[styles.dot, { backgroundColor: categoryColor }]} />
-                <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
-                  {getCategoryLabel(t, recipe.category)}
-                </Text>
-              </View>
-            ) : (
-              <View style={{ flex: 1 }} />
-            )}
-
-            <View style={[styles.headerRight, isRTL && styles.headerRightRTL]}>
-              <View style={styles.timeContainer}>
-                <Ionicons name="time-outline" size={13} color={COLORS.primary} />
-                <Text style={styles.timeText}>{recipe.prepTime + recipe.cookTime} {t.common.min}</Text>
-              </View>
-              {onToggleFavorite && (
-                <TouchableOpacity
-                  onPress={handleFavorite}
-                  style={styles.iconBtn}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Animated.View style={{ transform: [{ scale: favoriteScale }] }}>
-                    <Ionicons
-                      name={isFavorited ? 'heart' : 'heart-outline'}
-                      size={19}
-                      color={isFavorited ? '#ef4444' : COLORS.textMuted}
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
-              )}
-              {onEdit && (
-                <TouchableOpacity
-                  onPress={() => onEdit(recipe)}
-                  style={[styles.iconBtn, styles.editBtn]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="pencil" size={15} color={COLORS.purple} />
-                </TouchableOpacity>
-              )}
-              {onDelete && (
-                <TouchableOpacity
-                  onPress={() => onDelete(recipe)}
-                  style={[styles.iconBtn, styles.deleteBtn]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="trash" size={15} color={COLORS.error} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <Text style={[styles.cardTitle, isRTL && styles.textRTL]} numberOfLines={1}>{localizedTitle}</Text>
-
-          {reason ? (
-            <View style={styles.reasonContainer}>
-              <LinearGradient
-                colors={[COLORS.primaryTint, COLORS.primaryTintDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.reasonGradient}
-              >
-                <Ionicons name="sparkles" size={13} color={COLORS.primary} />
-                <Text style={[styles.reasonText, isRTL && styles.textRTL]} numberOfLines={1}>{reason}</Text>
-              </LinearGradient>
-            </View>
-          ) : (
-            <Text style={[styles.cardDesc, isRTL && styles.textRTL]} numberOfLines={2}>
-              {localizedDescription || t.common.noDescription}
-            </Text>
-          )}
-
-          <View style={styles.divider} />
-
-          <View style={[styles.cardFooter, isRTL && styles.cardFooterRTL]}>
-            <View style={styles.footerItem}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="people" size={12} color={COLORS.primary} />
-              </View>
-              <Text style={styles.footerText}>{recipe.servings} {t.common.servings}</Text>
-            </View>
-            <View style={styles.footerItem}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="restaurant" size={12} color={COLORS.primary} />
-              </View>
-              <Text style={styles.footerText}>{recipe.ingredients.length} {t.common.items}</Text>
-            </View>
-            {!onDelete && !onEdit && (
-              <View style={styles.arrowIcon}>
-                <Ionicons name={isRTL ? 'arrow-back' : 'arrow-forward'} size={15} color={COLORS.primary} />
-              </View>
-            )}
-          </View>
-        </LinearGradient>
+        {imageUrl ? (
+          <ImageBackground
+            source={{ uri: imageUrl }}
+            style={styles.card}
+            imageStyle={styles.backgroundImage}
+          >
+            <LinearGradient
+              colors={['rgba(10, 10, 15, 0.4)', 'rgba(10, 10, 15, 0.9)']}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {renderCardContent()}
+          </ImageBackground>
+        ) : (
+          <LinearGradient colors={[COLORS.card, COLORS.cardDeep]} style={styles.card}>
+            {renderCardContent()}
+          </LinearGradient>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -217,6 +249,18 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.borderSubtle,
     overflow: 'hidden',
+  },
+  backgroundImage: {
+    borderRadius: 22,
+  },
+  textWhite: {
+    color: '#ffffff',
+  },
+  textWhiteLight: {
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  dividerLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -265,6 +309,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
   },
+  shareBtn: { backgroundColor: COLORS.primaryTintDark },
   editBtn: { backgroundColor: COLORS.purpleTint },
   deleteBtn: { backgroundColor: COLORS.errorTint },
   cardTitle: {

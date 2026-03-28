@@ -11,7 +11,9 @@ import {
   ScrollView,
   StatusBar,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +21,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { COLORS } from '../../constants/theme';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { SettingsModal } from '../../components/SettingsModal';
+import * as Linking from 'expo-linking';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
@@ -26,8 +30,17 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   const router = useRouter();
   const { t, isRTL } = useLanguage();
+
+  async function handleGuest() {
+    await AsyncStorage.setItem('is_guest', 'true');
+    router.replace('/(tabs)');
+  }
 
   async function handleAuth() {
     if (!email || !password) {
@@ -46,9 +59,41 @@ export default function AuthScreen() {
         router.replace('/(tabs)');
       }
     } catch (error: any) {
-      Alert.alert(t.auth.errorTitle, error.message);
+      if (error.message.includes('Invalid login credentials')) {
+        Alert.alert(t.auth.errorTitle, t.auth.invalidCredentials);
+      } else {
+        Alert.alert(t.auth.errorTitle, error.message);
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleOpenForgotPassword() {
+    setForgotEmail(email); // Pre-fill with whatever they typed
+    setShowForgotModal(true);
+  }
+
+  async function submitForgotPassword() {
+    if (!forgotEmail) {
+      Alert.alert(t.auth.errorTitle, t.auth.emailRequiredForReset);
+      return;
+    }
+    setIsResetting(true);
+    try {
+      // Create a deep link specifically telling Supabase to return to the password update screen
+      const redirectUrl = Linking.createURL('auth/update-password');
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: redirectUrl,
+      });
+      if (error) throw error;
+      Alert.alert(t.auth.successTitle, t.auth.resetEmailSent);
+      setShowForgotModal(false);
+    } catch (error: any) {
+      Alert.alert(t.auth.errorTitle, error.message);
+    } finally {
+      setIsResetting(false);
     }
   }
 
@@ -72,6 +117,13 @@ export default function AuthScreen() {
         >
           {/* Logo + title */}
           <View style={styles.hero}>
+            <TouchableOpacity
+              onPress={() => setShowSettings(true)}
+              style={styles.settingsBtn}
+            >
+              <Ionicons name="settings-outline" size={24} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
             <View style={styles.logoWrap}>
               <LinearGradient
                 colors={[COLORS.primaryLight, COLORS.primary]}
@@ -134,6 +186,11 @@ export default function AuthScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+                {!isSignUp && (
+                  <TouchableOpacity onPress={handleOpenForgotPassword} style={[styles.forgotPasswordWrap, isRTL && { alignItems: 'flex-start' }]}>
+                    <Text style={[styles.forgotPasswordText, isRTL && styles.textRTL]}>{t.auth.forgotPassword}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TouchableOpacity
@@ -175,7 +232,7 @@ export default function AuthScreen() {
 
           <TouchableOpacity
             style={[styles.guestRow, isRTL && styles.guestRowRTL]}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={handleGuest}
             activeOpacity={0.7}
           >
             <Ionicons name="person-outline" size={14} color={COLORS.textMuted} style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
@@ -183,6 +240,68 @@ export default function AuthScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={showForgotModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowForgotModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+              <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.auth.forgotPasswordTitle}</Text>
+              <TouchableOpacity onPress={() => setShowForgotModal(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.modalSub, isRTL && styles.textRTL]}>{t.auth.forgotPasswordSub}</Text>
+
+            <View style={[styles.inputRow, isRTL && styles.inputRowRTL, { marginBottom: 24 }]}>
+              <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
+              <TextInput
+                style={[styles.input, isRTL && styles.textRTL]}
+                placeholder={t.auth.emailPlaceholder}
+                placeholderTextColor={COLORS.textFaint}
+                value={forgotEmail}
+                onChangeText={setForgotEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textAlign={isRTL ? 'right' : 'left'}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={submitForgotPassword}
+              disabled={isResetting}
+              activeOpacity={0.85}
+              style={styles.modalCtaWrap}
+            >
+              <LinearGradient
+                colors={[COLORS.primaryLight, COLORS.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaGradient}
+              >
+                {isResetting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.ctaText}>{t.auth.sendLink}</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </View>
   );
 }
@@ -226,7 +345,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 60,
   },
-  hero: { alignItems: 'center', marginBottom: 36 },
+  settingsBtn: {
+    position: 'absolute',
+    top: -20,
+    right: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 10,
+  },
+  hero: { alignItems: 'center', marginBottom: 36, position: 'relative' },
   logoWrap: { position: 'relative', marginBottom: 20 },
   logoGradient: {
     width: 76,
@@ -311,6 +444,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
   eyeBtn: { padding: 6 },
+  forgotPasswordWrap: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  forgotPasswordText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
   ctaWrap: { borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   ctaGradient: {
     paddingVertical: 16,
@@ -345,5 +487,48 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 14,
     fontFamily: 'Inter_500Medium',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontFamily: 'Inter_800ExtraBold',
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalSub: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalCtaWrap: { 
+    borderRadius: 16, 
+    overflow: 'hidden', 
   },
 });

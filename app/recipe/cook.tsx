@@ -19,6 +19,7 @@ import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import { getPersonalRecipes } from '../../lib/storage';
 import { Recipe } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { COLORS } from '../../constants/theme';
 
 export default function CookModeScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
@@ -134,6 +135,14 @@ export default function CookModeScreen() {
     return recipe.title;
   };
 
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
@@ -150,10 +159,10 @@ export default function CookModeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Ionicons name="document-outline" size={64} color="#334155" />
+          <Ionicons name="document-outline" size={64} color={COLORS.textFaint} />
           <Text style={styles.noStepsTitle}>{t.cook.noStepsTitle}</Text>
           <Text style={styles.noStepsText}>{t.cook.noStepsText}</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backHomeBtn}>
+          <TouchableOpacity onPress={goBack} style={styles.backHomeBtn}>
             <Text style={styles.backHomeBtnText}>{t.cook.goBack}</Text>
           </TouchableOpacity>
         </View>
@@ -168,24 +177,24 @@ export default function CookModeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#0f172a', '#0a0a0f']} style={styles.bg}>
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.bg}>
         <SafeAreaView style={styles.safeArea}>
 
           {/* Header */}
           <View style={[styles.header, isRTL && styles.headerRTL]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
-              <Ionicons name="close" size={22} color="#94a3b8" />
+            <TouchableOpacity onPress={goBack} style={styles.exitBtn}>
+              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
             <Text style={[styles.recipeTitle, isRTL && styles.textRTL]} numberOfLines={1}>{getLocalizedTitle()}</Text>
             <TouchableOpacity onPress={() => setShowTimerModal(true)} style={styles.timerBtn}>
-              <Ionicons name="timer-outline" size={22} color="#f5a623" />
+              <Ionicons name="timer-outline" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
           {/* Progress */}
           <View style={styles.progressOuter}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
           </View>
           <Text style={[styles.stepCounter, isRTL && styles.textRTL]}>
             {t.cook.step} {currentStep + 1} <Text style={styles.stepCounterOf}>{t.cook.of} {totalSteps}</Text>
@@ -208,9 +217,9 @@ export default function CookModeScreen() {
               },
             ]}
           >
-            <LinearGradient colors={['#f5a623', '#d97706']} style={styles.stepBadge}>
+            <View style={styles.stepBadge}>
               <Text style={styles.stepBadgeText}>{currentStep + 1}</Text>
-            </LinearGradient>
+            </View>
             <Text style={[styles.stepText, isRTL && styles.textRTL]}>{localizedSteps[currentStep]}</Text>
           </Animated.View>
 
@@ -225,13 +234,13 @@ export default function CookModeScreen() {
                   onPress={() => setTimerActive(!timerActive)}
                   style={styles.timerControlBtn}
                 >
-                  <Ionicons name={timerActive ? 'pause' : 'play'} size={20} color="#fff" />
+                  <Ionicons name={timerActive ? 'pause' : 'play'} size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => { setTimerActive(false); setTimerSeconds(0); setTimerTotal(0); }}
                   style={[styles.timerControlBtn, styles.timerResetBtn]}
                 >
-                  <Ionicons name="refresh" size={18} color="#64748b" />
+                  <Ionicons name="refresh" size={22} color={COLORS.textMuted} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -245,7 +254,7 @@ export default function CookModeScreen() {
               onPress={goPrev}
               disabled={isFirst}
             >
-              <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={22} color={isFirst ? '#334155' : '#fff'} />
+              <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={22} color={isFirst ? COLORS.textFaint : COLORS.textPrimary} />
               <Text style={[styles.navBtnText, isFirst && styles.navBtnTextDisabled]}>{t.cook.prev}</Text>
             </TouchableOpacity>
 
@@ -264,8 +273,8 @@ export default function CookModeScreen() {
 
             {/* Next/Done button — visually on right in LTR, left in RTL */}
             {isLast ? (
-              <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-                <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.doneBtnGrad}>
+              <TouchableOpacity style={styles.doneBtn} onPress={goBack}>
+                <LinearGradient colors={[COLORS.success, '#15803d']} style={styles.doneBtnGrad}>
                   <Ionicons name="checkmark" size={22} color="#fff" />
                   <Text style={styles.doneBtnText}>{t.cook.done}</Text>
                 </LinearGradient>
@@ -279,7 +288,7 @@ export default function CookModeScreen() {
           </View>
 
         </SafeAreaView>
-      </LinearGradient>
+      </View>
 
       {/* Timer Input Modal */}
       <Modal
@@ -291,7 +300,7 @@ export default function CookModeScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIcon}>
-              <Ionicons name="timer" size={32} color="#f5a623" />
+              <Ionicons name="timer" size={32} color={COLORS.primary} />
             </View>
             <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.cook.setTimer}</Text>
             <Text style={[styles.modalSub, isRTL && styles.textRTL]}>{t.cook.timerQuestion}</Text>
@@ -312,7 +321,7 @@ export default function CookModeScreen() {
                 <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalStart} onPress={startTimer}>
-                <LinearGradient colors={['#f5a623', '#ea580c']} style={styles.modalStartGrad}>
+                <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.modalStartGrad}>
                   <Text style={styles.modalStartText}>{t.cook.startTimer}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -325,15 +334,15 @@ export default function CookModeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
-  bg: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  bg: { flex: 1, backgroundColor: COLORS.bg },
+  safeArea: { flex: 1, paddingHorizontal: 24, paddingBottom: 20 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  loadingText: { color: '#94a3b8', fontSize: 16 },
-  noStepsTitle: { color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 20, marginBottom: 10 },
-  noStepsText: { color: '#64748b', textAlign: 'center', fontSize: 15, lineHeight: 22, marginBottom: 30 },
-  backHomeBtn: { backgroundColor: '#16213e', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16 },
-  backHomeBtnText: { color: '#f5a623', fontSize: 15, fontWeight: '700' },
+  loadingText: { color: COLORS.textMuted, fontSize: 16 },
+  noStepsTitle: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '700', marginTop: 20, marginBottom: 10 },
+  noStepsText: { color: COLORS.textSecondary, textAlign: 'center', fontSize: 15, lineHeight: 22, marginBottom: 30 },
+  backHomeBtn: { backgroundColor: COLORS.surfaceDeep, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16 },
+  backHomeBtnText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
 
   header: {
     flexDirection: 'row',
@@ -344,96 +353,110 @@ const styles = StyleSheet.create({
   },
   headerRTL: { flexDirection: 'row-reverse' },
   exitBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
   },
-  recipeTitle: { flex: 1, color: '#94a3b8', fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  recipeTitle: { flex: 1, color: COLORS.textPrimary, fontSize: 17, fontWeight: '700', textAlign: 'center' },
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   timerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(245,166,35,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primaryTintDark,
   },
 
   progressOuter: {
-    height: 4,
-    backgroundColor: '#1e293b',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: COLORS.surfaceDeep,
+    borderRadius: 3,
     marginBottom: 12,
+    overflow: 'hidden',
   },
   progressFill: {
-    height: 4,
-    backgroundColor: '#f5a623',
-    borderRadius: 2,
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 3,
   },
   stepCounter: {
-    color: '#f5a623',
+    color: COLORS.primary,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  stepCounterOf: { color: '#475569', fontWeight: '500' },
+  stepCounterOf: { color: COLORS.textMuted, fontWeight: '600' },
 
   stepCard: {
     flex: 1,
-    backgroundColor: '#111827',
-    borderRadius: 28,
+    backgroundColor: COLORS.card,
+    borderRadius: 32,
     padding: 32,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
     marginBottom: 24,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
   },
   stepBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 28,
+    borderWidth: 2,
+    borderColor: COLORS.primaryTintDark,
   },
-  stepBadgeText: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  stepBadgeText: { color: COLORS.primary, fontSize: 28, fontWeight: '900' },
   stepText: {
-    color: '#e2e8f0',
-    fontSize: 20,
-    lineHeight: 32,
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    lineHeight: 34,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
   timerDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    backgroundColor: '#111827',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
+    gap: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.borderSubtle,
   },
-  timerValue: { fontSize: 36, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  timerControls: { flexDirection: 'row', gap: 10 },
+  timerValue: { fontSize: 42, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  timerControls: { flexDirection: 'row', gap: 12 },
   timerControlBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  timerResetBtn: { backgroundColor: 'rgba(255,255,255,0.04)' },
+  timerResetBtn: { backgroundColor: COLORS.surfaceDeep },
 
   navRow: {
     flexDirection: 'row',
@@ -447,94 +470,104 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.borderSubtle,
   },
-  navBtnDisabled: { opacity: 0.3 },
-  navBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  navBtnTextDisabled: { color: '#334155' },
+  navBtnDisabled: { opacity: 0.5 },
+  navBtnText: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
+  navBtnTextDisabled: { color: COLORS.textFaint },
 
-  dotRow: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1e293b' },
-  dotActive: { backgroundColor: '#f5a623', width: 18, borderRadius: 3 },
+  dotRow: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.surfaceDeep },
+  dotActive: { backgroundColor: COLORS.primary, width: 24, borderRadius: 4 },
 
   navBtnNext: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#f5a623',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderRadius: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  navBtnNextText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  navBtnNextText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  doneBtn: { borderRadius: 16, overflow: 'hidden' },
+  doneBtn: { borderRadius: 16, overflow: 'hidden', elevation: 4, shadowColor: COLORS.success, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   doneBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
-  doneBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  doneBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(26, 8, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
   modalContent: {
-    backgroundColor: '#16213e',
-    borderRadius: 24,
-    padding: 28,
+    backgroundColor: COLORS.card,
+    borderRadius: 28,
+    padding: 32,
     width: '100%',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(245,166,35,0.1)',
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  modalTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 6 },
-  modalSub: { color: '#64748b', fontSize: 14, marginBottom: 20, textAlign: 'center' },
+  modalTitle: { color: COLORS.textPrimary, fontSize: 24, fontWeight: '800', marginBottom: 8 },
+  modalSub: { color: COLORS.textSecondary, fontSize: 15, marginBottom: 24, textAlign: 'center' },
   modalInput: {
-    backgroundColor: '#0f172a',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: '800',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    color: COLORS.textPrimary,
+    fontSize: 48,
+    fontWeight: '900',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: COLORS.borderSubtle,
   },
   modalBtns: { flexDirection: 'row', gap: 12, width: '100%' },
   modalBtnsRTL: { flexDirection: 'row-reverse' },
   modalCancel: {
     flex: 1,
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
   },
-  modalCancelText: { color: '#94a3b8', fontSize: 15, fontWeight: '700' },
-  modalStart: { flex: 1, borderRadius: 14, overflow: 'hidden' },
-  modalStartGrad: { paddingVertical: 14, justifyContent: 'center', alignItems: 'center' },
-  modalStartText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  modalCancelText: { color: COLORS.textSecondary, fontSize: 16, fontWeight: '700' },
+  modalStart: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+  modalStartGrad: { paddingVertical: 16, justifyContent: 'center', alignItems: 'center' },
+  modalStartText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

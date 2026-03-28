@@ -42,3 +42,4 @@ android/local.properties
 
 # Project specific
 .gemini/
+.vercel

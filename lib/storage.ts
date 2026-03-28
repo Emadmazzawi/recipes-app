@@ -24,7 +24,32 @@ export async function getPersonalRecipes(): Promise<Recipe[]> {
       if (error) {
         console.error('Supabase error fetching recipes:', error);
       } else if (data) {
-        return data as Recipe[];
+        return data.map((row: any) => {
+          let parsedIngredients = [];
+          let parsedSteps = [];
+          try {
+            parsedIngredients = typeof row.ingredients === 'string' ? JSON.parse(row.ingredients) : row.ingredients;
+          } catch (e) {}
+          try {
+            parsedSteps = typeof row.steps === 'string' ? JSON.parse(row.steps) : row.steps;
+          } catch (e) {}
+
+          return {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            servings: row.servings,
+            prepTime: row.prep_time,
+            cookTime: row.cook_time,
+            category: row.category,
+            imageUri: row.image_uri,
+            unsplashImageUrl: row.unsplash_image_url,
+            ingredients: parsedIngredients,
+            steps: parsedSteps,
+            isBuiltIn: row.is_built_in,
+            createdAt: row.created_at,
+          } as Recipe;
+        });
       }
     }
 
@@ -58,9 +83,26 @@ export async function savePersonalRecipe(recipe: Recipe): Promise<void> {
     await AsyncStorage.setItem(PERSONAL_RECIPES_KEY, JSON.stringify(updatedRecipes));
 
     if (user) {
+      const dbRecipe = {
+        id: recipe.id,
+        user_id: user.id,
+        title: recipe.title,
+        description: recipe.description,
+        servings: recipe.servings,
+        prep_time: recipe.prepTime,
+        cook_time: recipe.cookTime,
+        category: recipe.category,
+        image_uri: recipe.imageUri,
+        unsplash_image_url: recipe.unsplashImageUrl,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        is_built_in: recipe.isBuiltIn,
+        created_at: recipe.createdAt,
+      };
+
       const { error } = await supabase
         .from('recipes')
-        .upsert({ ...recipe, user_id: user.id }, { onConflict: 'id' });
+        .upsert(dbRecipe, { onConflict: 'id' });
 
       if (error) {
         console.error('Supabase error saving recipe:', error);

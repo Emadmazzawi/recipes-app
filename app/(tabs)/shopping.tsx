@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,12 +22,14 @@ import {
 } from '../../lib/storage';
 import { ShoppingItem } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { SettingsModal } from '../../components/SettingsModal';
 import { COLORS } from '../../constants/theme';
 
 export default function ShoppingScreen() {
   const { t, isRTL } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,17 +65,24 @@ export default function ShoppingScreen() {
 
   const handleClearAll = () => {
     if (items.length === 0) return;
-    Alert.alert(t.shopping.clearAllTitle, t.shopping.clearAllConfirm, [
-      { text: t.common.cancel, style: 'cancel' },
-      {
-        text: t.shopping.clearAll,
-        style: 'destructive',
-        onPress: async () => {
-          await clearShoppingList();
-          setItems([]);
+    
+    if (Platform.OS === 'web') {
+      if (window.confirm(t.shopping.clearAllConfirm)) {
+        clearShoppingList().then(() => setItems([]));
+      }
+    } else {
+      Alert.alert(t.shopping.clearAllTitle, t.shopping.clearAllConfirm, [
+        { text: t.common.cancel, style: 'cancel' },
+        {
+          text: t.shopping.clearAll,
+          style: 'destructive',
+          onPress: async () => {
+            await clearShoppingList();
+            setItems([]);
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const sorted = [...items].sort((a, b) => Number(a.checked) - Number(b.checked));
@@ -127,6 +137,13 @@ export default function ShoppingScreen() {
           )}
         </View>
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => setShowSettings(true)}
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="settings-outline" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
           {checkedCount > 0 && (
             <TouchableOpacity onPress={handleClearChecked} style={styles.headerBtn}>
               <Ionicons name="checkmark-done" size={20} color={COLORS.success} />
@@ -175,6 +192,11 @@ export default function ShoppingScreen() {
             </View>
           ) : null
         }
+      />
+
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
       />
     </SafeAreaView>
   );

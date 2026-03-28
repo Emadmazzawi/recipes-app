@@ -6,6 +6,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-1',
     title: 'Classic Chocolate Cake',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1740594967618-23cd757b9291?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwQ2hvY29sYXRlJTIwQ2FrZXxlbnwwfDB8fHwxNzc0NjAzMDMxfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A rich, moist chocolate cake perfect for any occasion.',
     title_he: 'עוגת שוקולד קלאסית',
     description_he: 'עוגת שוקולד עשירה ולחה, מושלמת לכל אירוע.',
@@ -84,6 +85,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-2',
     title: 'Classic Pizza Dough',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1738717201744-9faf699eea3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwUGl6emElMjBEb3VnaHxlbnwwfDB8fHwxNzc0NjAzMDMxfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Authentic Neapolitan-style pizza dough, crispy outside and chewy inside.',
     title_he: 'בצק פיצה קלאסי',
     description_he: 'בצק פיצה נאפוליטאני אותנטי, פריך מבחוץ ורך מבפנים.',
@@ -150,6 +152,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-3',
     title: 'Hummus',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1637949385162-e416fb15b2ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxIdW1tdXN8ZW58MHwwfHx8MTc3NDYwMzAzMnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Creamy, authentic homemade hummus. Perfect as a dip or spread.',
     title_he: 'חומוס',
     description_he: 'חומוס ביתי קרמי ואותנטי. מושלם כטחינה או ממרח.',
@@ -216,6 +219,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-4',
     title: 'Banana Bread',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1701727080961-00e8c9086e45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxCYW5hbmElMjBCcmVhZHxlbnwwfDB8fHwxNzc0NjAzMDMyfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Moist and perfectly sweet banana bread — great for overripe bananas.',
     title_he: 'לחם בננות',
     description_he: 'לחם בננות לח ומתוק בדיוק — מושלם לבננות בשלות מדי.',
@@ -288,6 +292,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-5',
     title: 'Classic Pancakes',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1769326541231-c6bd945b75f9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwUGFuY2FrZXN8ZW58MHwwfHx8MTc3NDYwMzAzM3ww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Fluffy, golden pancakes for the perfect weekend breakfast.',
     title_he: 'פנקייקס קלאסיים',
     description_he: 'פנקייקס אוורירים וזהובים לארוחת בוקר מושלמת בסוף השבוע.',
@@ -357,6 +362,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-6',
     title: 'Classic French Omelette',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1639669794539-952631b44515?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwRnJlbmNoJTIwT21lbGV0dGV8ZW58MHwwfHx8MTc3NDYwMzA2OHww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A smooth, creamy, and delicate omelette — the gold standard of eggs.',
     title_he: 'חביתה צרפתית קלאסית',
     description_he: 'חביתה חלקה, קרמית ועדינה — הסטנדרט הזהב של ביצים.',
@@ -414,6 +420,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-7',
     title: 'Brioche French Toast',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1737065175923-7b05466a2c1a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxCcmlvY2hlJTIwRnJlbmNoJTIwVG9hc3R8ZW58MHwwfHx8MTc3NDYwMzA2OXww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Thick slices of brioche soaked in a rich custard and fried until golden.',
     title_he: 'טוסט צרפתי בריוש',
     description_he: 'פרוסות עבות של בריוש ספוגות בקסטרד עשיר ומטוגנות עד להזהבה.',
@@ -474,6 +481,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-8',
     title: 'Berry Smoothie Bowl',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1656582117142-ce539fec964f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxCZXJyeSUyMFNtb290aGllJTIwQm93bHxlbnwwfDB8fHwxNzc0NjAzMDcwfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A thick, spoonable smoothie topped with fresh fruit and granola.',
     title_he: 'קערת סמות\'י פירות יער',
     description_he: 'סמות\'י סמיך הנאכל בכף ומוגש עם פירות טריים וגרנולה.',
@@ -525,6 +533,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-9',
     title: 'Sourdough Avocado Toast',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1650330144131-84c9ba7661f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxTb3VyZG91Z2glMjBBdm9jYWRvJTIwVG9hc3R8ZW58MHwwfHx8MTc3NDYwMzA3MHww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'The modern classic: creamy avocado on toasted sourdough with a kick.',
     title_he: 'טוסט אבוקדו על שאור',
     description_he: 'הקלאסיקה המודרנית: אבוקדו קרמי על לחם שאור קלוי עם בעיטה.',
@@ -579,6 +588,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-10',
     title: 'Pasta Carbonara',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1588013273468-315fd88ea34c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxQYXN0YSUyMENhcmJvbmFyYXxlbnwwfDB8fHwxNzc0NjAzMDQ0fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'The authentic Roman pasta with eggs, cheese, and guanciale.',
     title_he: 'פסטה קרבונרה',
     description_he: 'הפסטה הרומית האותנטית עם ביצים, גבינה וגואנצ\'אלה.',
@@ -639,6 +649,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-11',
     title: 'Lemon Herb Grilled Chicken',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1680249816404-29fedb436294?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxMZW1vbiUyMEhlcmIlMjBHcmlsbGVkJTIwQ2hpY2tlbnxlbnwwfDB8fHwxNzc0NjAzMDQ1fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Juicy chicken breasts marinated in lemon, garlic, and fresh herbs.',
     title_he: 'עוף צלוי בלימון ועשבי תיבול',
     description_he: 'חזה עוף עסיסי שמיורה בלימון, שום ועשבי תיבול טריים.',
@@ -696,6 +707,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-12',
     title: 'Beef Stir Fry',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1760504526069-ff0f8bf6e4ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxCZWVmJTIwU3RpciUyMEZyeXxlbnwwfDB8fHwxNzc0NjAzMDQ1fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Quick and healthy beef stir fry with colorful vegetables.',
     title_he: 'מוקפץ בקר',
     description_he: 'מוקפץ בקר מהיר ובריא עם ירקות צבעוניים.',
@@ -759,6 +771,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-13',
     title: 'Pan-Seared Salmon',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxQYW4tU2VhcmVkJTIwU2FsbW9ufGVufDB8MHx8fDE3NzQ2MDMwNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Crispy skin salmon with a tender, flaky interior.',
     title_he: 'סלמון מטוגן במחבת',
     description_he: 'סלמון עם עור פריך ופנים רך ומתפרק.',
@@ -816,6 +829,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-14',
     title: 'Garlic Butter Lamb Chops',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1708974138560-8705fae35897?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxHYXJsaWMlMjBCdXR0ZXIlMjBMYW1iJTIwQ2hvcHN8ZW58MHwwfHx8MTc3NDYwMzA0Nnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Tender lamb chops seared with garlic and rosemary butter.',
     title_he: 'קציצות כבש בחמאת שום',
     description_he: 'קציצות כבש רכות שנצרבו עם שום וחמאת רוזמרין.',
@@ -873,6 +887,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-15',
     title: 'Vegetable Curry',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1582576163090-09d3b6f8a969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxWZWdldGFibGUlMjBDdXJyeXxlbnwwfDB8fHwxNzc0NjAzMDQ3fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A fragrant and warming chickpea and potato curry.',
     title_he: 'קארי ירקות',
     description_he: 'קארי עוצמתי ומחמם עם חומוס ותפוחי אדמה.',
@@ -930,6 +945,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-16',
     title: 'Chicken Shawarma',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1734772591537-15ac1b3b3c04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDaGlja2VuJTIwU2hhd2FybWF8ZW58MHwwfHx8MTc3NDYwMzA0OHww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Middle Eastern style marinated chicken, perfect for wraps.',
     title_he: 'שווארמה עוף',
     description_he: 'עוף מתובל בסגנון מזרח תיכוני, מושלם לעטיפות.',
@@ -987,6 +1003,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-17',
     title: 'Homemade Falafel',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1759271082074-6cde09f86550?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxIb21lbWFkZSUyMEZhbGFmZWx8ZW58MHwwfHx8MTc3NDYwMzA0OHww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Crispy herb-packed chickpea fritters.',
     title_he: 'פלאפל ביתי',
     description_he: 'קציצות חומוס פריכות עמוסות עשבי תיבול.',
@@ -1044,6 +1061,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-18',
     title: 'Tomato Bruschetta',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1558679582-4d81ce75993a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxUb21hdG8lMjBCcnVzY2hldHRhfGVufDB8MHx8fDE3NzQ2MDMwNDl8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Crispy toasted bread topped with fresh tomato and basil.',
     title_he: 'ברוסקטה עגבניות',
     description_he: 'לחם קלוי פריך מעוטר בעגבנייה טרייה ובזיליקום.',
@@ -1098,6 +1116,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-19',
     title: 'Vegetable Spring Rolls',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1768726136209-5478a6110ce3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxWZWdldGFibGUlMjBTcHJpbmclMjBSb2xsc3xlbnwwfDB8fHwxNzc0NjAzMDUwfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Crispy pastry filled with shredded vegetables.',
     title_he: 'ספרינג רולס ירקות',
     description_he: 'מאפה פריך ממולא בירקות מגוררים.',
@@ -1152,6 +1171,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-20',
     title: 'Stuffed Mushrooms',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1622268805718-ca073548d4ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxTdHVmZmVkJTIwTXVzaHJvb21zfGVufDB8MHx8fDE3NzQ2MDMwNTF8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Mushroom caps filled with garlic, herbs, and breadcrumbs.',
     title_he: 'פטריות ממולאות',
     description_he: 'כיפות פטריות ממולאות בשום, עשבי תיבול ופירורי לחם.',
@@ -1209,6 +1229,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-21',
     title: 'Cheesy Garlic Bread',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDaGVlc3klMjBHYXJsaWMlMjBCcmVhZHxlbnwwfDB8fHwxNzc0NjAzMDUxfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Buttery, garlicky, and loaded with melted mozzarella.',
     title_he: 'לחם שום עם גבינה',
     description_he: 'חמאתי, שומי ועמוס במוצרלה נמסה.',
@@ -1263,6 +1284,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-22',
     title: 'Classic Caprese Salad',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1692106914247-4f9f1850eeab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwQ2FwcmVzZSUyMFNhbGFkfGVufDB8MHx8fDE3NzQ2MDMwNTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Fresh mozzarella, tomatoes, and basil drizzled with balsamic glaze.',
     title_he: 'סלט קפרזה קלאסי',
     description_he: 'מוצרלה טרייה, עגבניות ובזיליקום עם ציפוי בלסמי.',
@@ -1317,6 +1339,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-23',
     title: 'Classic Tiramisu',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1675627452466-fec3fa89f394?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwVGlyYW1pc3V8ZW58MHwwfHx8MTc3NDYwMzA1M3ww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'An elegant Italian dessert with espresso-soaked ladyfingers and mascarpone.',
     title_he: 'טירמיסו קלאסי',
     description_he: 'קינוח איטלקי אלגנטי עם ביסקויטים ספוגים בקפה ומסקרפונה.',
@@ -1380,6 +1403,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-24',
     title: 'New York Cheesecake',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1611497438246-dcbb383de3c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrJTIwQ2hlZXNlY2FrZXxlbnwwfDB8fHwxNzc0NjAzMDUzfDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Rich, dense, and creamy cheesecake with a graham cracker crust.',
     title_he: 'עוגת גבינה ניו יורקית',
     description_he: 'עוגת גבינה עשירה, סמיכה וקרמית עם בסיס עוגיות גרהם.',
@@ -1440,6 +1464,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-25',
     title: 'Fudgy Brownies',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1608732220898-9e419b03d71f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxGdWRneSUyMEJyb3duaWVzfGVufDB8MHx8fDE3NzQ2MDMwNTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Dense, chewy chocolate brownies with a crackly top.',
     title_he: 'בראוניז פאדג\'י',
     description_he: 'בראוניז שוקולד סמיכים ולעיסים עם קרום מבריק.',
@@ -1497,6 +1522,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-26',
     title: 'Homemade Apple Pie',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1673646961306-3487ac6147f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxIb21lbWFkZSUyMEFwcGxlJTIwUGllfGVufDB8MHx8fDE3NzQ2MDMwNTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Classic warm apple pie with a flaky buttery crust.',
     title_he: 'פשטידת תפוחים ביתית',
     description_he: 'פשטידת תפוחים חמה קלאסית עם קרום חמאתי פריך.',
@@ -1554,6 +1580,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-27',
     title: 'Vanilla Bean Creme Brulee',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1637194502327-c99c94943680?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxWYW5pbGxhJTIwQmVhbiUyMENyZW1lJTIwQnJ1bGVlfGVufDB8MHx8fDE3NzQ2MDMwNTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Smooth vanilla custard with a brittle caramelized sugar top.',
     title_he: 'קרם בורלה וניל',
     description_he: 'קרם וניל חלק עם קרום סוכר מקורמל שביר.',
@@ -1608,6 +1635,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-28',
     title: 'Honey Walnut Baklava',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1771189957022-8bfa5ad7276d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxIb25leSUyMFdhbG51dCUyMEJha2xhdmF8ZW58MHwwfHx8MTc3NDYwMzA1Nnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Layers of crispy phyllo pastry, nuts, and sweet honey syrup.',
     title_he: 'בקלאווה אגוזים בדבש',
     description_he: 'שכבות של בצק פילו פריך, אגוזים ושרבט דבש מתוק.',
@@ -1665,6 +1693,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-29',
     title: 'Classic Sourdough Bread',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1535225590861-ec87a4153b44?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwU291cmRvdWdoJTIwQnJlYWR8ZW58MHwwfHx8MTc3NDYwMzA1Nnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A traditional crusty loaf made with natural yeast.',
     title_he: 'לחם שאור קלאסי',
     description_he: 'כיכר לחם מסורתית עם קרום, המוכנה עם שמרים טבעיים.',
@@ -1719,6 +1748,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-30',
     title: 'Butter Croissants',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1731696644139-80c466c6aac9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxCdXR0ZXIlMjBDcm9pc3NhbnRzfGVufDB8MHx8fDE3NzQ2MDMwNTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Flaky, buttery, multi-layered French pastries.',
     title_he: 'קרואסון חמאה',
     description_he: 'מאפים צרפתיים פריכים, חמאתיים ורב-שכבתיים.',
@@ -1776,6 +1806,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-31',
     title: 'Soft Cinnamon Rolls',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1720806239022-deadeda791e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxTb2Z0JTIwQ2lubmFtb24lMjBSb2xsc3xlbnwwfDB8fHwxNzc0NjAzMDU4fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Gooey and sweet rolls with a cream cheese glaze.',
     title_he: 'לחמניות קינמון רכות',
     description_he: 'לחמניות דביקות ומתוקות עם ציפוי גבינת שמנת.',
@@ -1833,6 +1864,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-32',
     title: 'Rosemary Focaccia',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1706145787429-4d6b00a5dc0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxSb3NlbWFyeSUyMEZvY2FjY2lhfGVufDB8MHx8fDE3NzQ2MDMwNTh8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A flat Italian bread topped with olive oil and fresh rosemary.',
     title_he: 'פוקאצ\'ה רוזמרין',
     description_he: 'לחם איטלקי שטוח עם שמן זית ורוזמרין טרי.',
@@ -1887,6 +1919,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-33',
     title: 'Homemade Pita Bread',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1646658742722-3e72f2c2c103?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxIb21lbWFkZSUyMFBpdGElMjBCcmVhZHxlbnwwfDB8fHwxNzc0NjAzMDU5fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Soft, pocketed flatbreads fresh from the oven.',
     title_he: 'לחם פיתה ביתי',
     description_he: 'לחם פיתה רך עם כיס, טרי מהתנור.',
@@ -1938,6 +1971,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-34',
     title: 'Creamy Tomato Soup',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1762647420988-5080acf33988?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDcmVhbXklMjBUb21hdG8lMjBTb3VwfGVufDB8MHx8fDE3NzQ2MDMwNTl8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Smooth and comforting roasted tomato soup.',
     title_he: 'מרק עגבניות קרמי',
     description_he: 'מרק עגבניות קלויות חלק ומנחם.',
@@ -1992,6 +2026,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-35',
     title: 'Red Lentil Soup',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1730312382513-62e9454f4797?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxSZWQlMjBMZW50aWwlMjBTb3VwfGVufDB8MHx8fDE3NzQ2MDMwNjB8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A hearty and healthy Mediterranean lentil soup.',
     title_he: 'מרק עדשים כתומות',
     description_he: 'מרק עדשים ים-תיכוני מלא ובריא.',
@@ -2046,6 +2081,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-36',
     title: 'Classic Chicken Noodle Soup',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1664337873053-840ea51d271d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwQ2hpY2tlbiUyME5vb2RsZSUyMFNvdXB8ZW58MHwwfHx8MTc3NDYwMzA2MXww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'The ultimate feel-good soup with tender chicken and egg noodles.',
     title_he: 'מרק עוף קלאסי עם אטריות',
     description_he: 'מרק העוף האולטימטיבי עם עוף רך ואטריות ביצה.',
@@ -2100,6 +2136,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-37',
     title: 'French Onion Soup',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1589563766992-49797b1148a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxGcmVuY2glMjBPbmlvbiUyMFNvdXB8ZW58MHwwfHx8MTc3NDYwMzA2Mnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Deeply caramelized onions in a rich beef broth with melted cheese.',
     title_he: 'מרק בצל צרפתי',
     description_he: 'בצל מקורמל עמוק במרק בקר עשיר עם גבינה נמסה.',
@@ -2154,6 +2191,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-38',
     title: 'Classic Caesar Salad',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1722032617357-7b09276b1a8d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDbGFzc2ljJTIwQ2Flc2FyJTIwU2FsYWR8ZW58MHwwfHx8MTc3NDYwMzA2Mnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Crisp romaine lettuce with creamy dressing and croutons.',
     title_he: 'סלט קיסר קלאסי',
     description_he: 'חסה רומנית פריכה עם רוטב קרמי וקרוטונים.',
@@ -2202,6 +2240,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-39',
     title: 'Traditional Greek Salad',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1751112625480-490073cbf10e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxUcmFkaXRpb25hbCUyMEdyZWVrJTIwU2FsYWR8ZW58MHwwfHx8MTc3NDYwMzA2M3ww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A refreshing mix of cucumbers, tomatoes, olives, and feta.',
     title_he: 'סלט יווני מסורתי',
     description_he: 'תערובת מרעננת של מלפפונים, עגבניות, זיתים ופטה.',
@@ -2253,6 +2292,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-40',
     title: 'Fresh Tabbouleh',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1560799262-3727e67f0c62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxGcmVzaCUyMFRhYmJvdWxlaHxlbnwwfDB8fHwxNzc0NjAzMDY0fDA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A vibrant Lebanese herb salad with bulgur and parsley.',
     title_he: 'טבולה טרייה',
     description_he: 'סלט עשבי תיבול לבנוני תוסס עם בורגול ופטרוזיליה.',
@@ -2358,6 +2398,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-42',
     title: 'Fresh Lemonade',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1665582295782-eecc2e25b74f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxGcmVzaCUyMExlbW9uYWRlfGVufDB8MHx8fDE3NzQ2MDMwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Homemade lemonade with the perfect balance of sweet and tart.',
     title_he: 'לימונדה טרייה',
     description_he: 'לימונדה ביתית עם האיזון המושלם בין מתוק לחמוץ.',
@@ -2409,6 +2450,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-43',
     title: 'Moroccan Mint Tea',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1574810134700-b6ba48d151a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxNb3JvY2NhbiUyME1pbnQlMjBUZWF8ZW58MHwwfHx8MTc3NDYwMzA2Nnww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Traditional green tea with fresh mint and plenty of sugar.',
     title_he: 'תה נענע מרוקאי',
     description_he: 'תה ירוק מסורתי עם נענע טרייה והרבה סוכר.',
@@ -2460,6 +2502,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-44',
     title: 'Tropical Fruit Smoothie',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1544510807-1c0229035e63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxUcm9waWNhbCUyMEZydWl0JTIwU21vb3RoaWV8ZW58MHwwfHx8MTc3NDYwMzA2N3ww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'A refreshing blend of mango, pineapple, and coconut.',
     title_he: 'שייק פירות טרופיים',
     description_he: 'תערובת מרעננת של מנגו, אננס וקוקוס.',
@@ -2508,6 +2551,7 @@ export const BUILT_IN_RECIPES: Recipe[] = [
   {
     id: 'builtin-45',
     title: 'Creamy Hot Chocolate',
+    unsplashImageUrl: 'https://images.unsplash.com/photo-1664793678025-21bb2d47c2a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MDc1Mzd8MHwxfHNlYXJjaHwxfHxDcmVhbXklMjBIb3QlMjBDaG9jb2xhdGV8ZW58MHwwfHx8MTc3NDYwMzA2OHww&ixlib=rb-4.1.0&q=80&w=1080',
     description: 'Rich hot chocolate made with real chocolate and milk.',
     title_he: 'שוקו חם קרמי',
     description_he: 'שוקולד חם עשיר העשוי משוקולד אמיתי וחלב.',

@@ -1,42 +1,33 @@
 import { Ingredient } from '../types';
-import Constants from 'expo-constants';
-
-const API_KEY = Constants.expoConfig?.extra?.geminiApiKey;
-const MODEL = 'gemini-1.5-flash';
+import { supabase } from './supabase';
 
 export async function scanIngredientsFromImage(base64Image: string): Promise<Partial<Ingredient>[]> {
-  if (!API_KEY) throw new Error('Gemini API key is not configured');
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-  const prompt =
-    "Extract ingredients from this image of a recipe list. Return ONLY a JSON array of objects with 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed. Output only the JSON array.";
-
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
-            ],
-          },
-        ],
-      }),
+    const { data, error } = await supabase.functions.invoke('gemini', {
+      body: { action: 'scan_ingredients', payload: { base64Image } }
     });
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API request failed');
+    if (error) throw new Error(error.message || 'Supabase function failed');
+    if (data?.error) throw new Error(data.error || 'API request failed');
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.text;
     if (!text) throw new Error('No content received from Gemini.');
 
-    const jsonMatch = text.match(/\[.*\]/s);
-    if (!jsonMatch) throw new Error('Could not parse ingredients JSON.');
+    // Robust JSON array extraction
+    let jsonStr = '';
+    const blockMatch = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+    if (blockMatch) {
+      jsonStr = blockMatch[1];
+    } else {
+      const start = text.indexOf('[');
+      const end = text.lastIndexOf(']');
+      if (start === -1 || end === -1 || start >= end) {
+        throw new Error('Could not find JSON array bounds.');
+      }
+      jsonStr = text.substring(start, end + 1);
+    }
 
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Error scanning ingredients:', error);
     throw error;
@@ -44,101 +35,150 @@ export async function scanIngredientsFromImage(base64Image: string): Promise<Par
 }
 
 export async function smartSearchRecipes(query: string, recipes: any[]): Promise<Record<string, string>> {
-  if (!API_KEY) return {};
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-
-  const recipeList = recipes.map(r => ({
-    id: r.id,
-    title: r.title,
-    ingredients: r.ingredients.map((i: any) => i.name).join(', '),
-  }));
-
-  const prompt = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return ONLY a JSON object where keys are recipe IDs and values are a short one-sentence explanation of why it matches. Recipes: ${JSON.stringify(recipeList)}`;
-
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+    const { data, error } = await supabase.functions.invoke('gemini', {
+      body: { action: 'smart_search', payload: { query, recipes } }
     });
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API request failed');
+    if (error) throw new Error(error.message || 'Supabase function failed');
+    if (data?.error) throw new Error(data.error || 'API request failed');
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.text;
     if (!text) return {};
 
-    const jsonMatch = text.match(/\{.*\}/s);
-    if (!jsonMatch) return {};
+    // Robust JSON object extraction
+    let jsonStr = '';
+    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (blockMatch) {
+      jsonStr = blockMatch[1];
+    } else {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start === -1 || end === -1 || start >= end) return {};
+      jsonStr = text.substring(start, end + 1);
+    }
 
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Smart search error:', error);
     return {};
   }
 }
 
-export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
-  if (!API_KEY) throw new Error('Gemini API key is not configured');
+// Helper function to add timeout to fetch
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 10000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
+  let url = recipeUrl.trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
 
   let pageContent = '';
   try {
-    const pageResponse = await fetch(recipeUrl, {
+    const pageResponse = await fetchWithTimeout(url, {
       headers: { Accept: 'text/html,application/xhtml+xml' },
-    });
+    }, 5000);
+    if (!pageResponse.ok) throw new Error('Direct fetch failed');
     const html = await pageResponse.text();
-    pageContent = html
+    pageContent = html;
+  } catch (err) {
+    console.log('Direct fetch failed, trying proxy...', err);
+    try {
+      // Fallback to a CORS proxy for web usage
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const proxyResponse = await fetchWithTimeout(proxyUrl, {}, 8000);
+      if (proxyResponse.ok) {
+        const proxyData = await proxyResponse.json();
+        pageContent = proxyData.contents || '';
+      }
+    } catch (proxyErr) {
+      console.log('Proxy fetch failed as well', proxyErr);
+      pageContent = '';
+    }
+  }
+
+  if (pageContent) {
+    pageContent = pageContent
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .substring(0, 8000);
-  } catch {
-    pageContent = '';
   }
 
-  const recipeSchema = `{
-    "title": "string",
-    "description": "string",
-    "servings": number,
-    "prepTime": number,
-    "cookTime": number,
-    "category": "Breakfast|Main|Appetizer|Dessert|Baking|Soup|Salad|Drinks|Other",
-    "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
-    "steps": ["string"]
-  }`;
-
-  const prompt = pageContent
-    ? `Extract a complete recipe from the following webpage text. Return ONLY a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
-    : `Extract the complete recipe from this URL: ${recipeUrl}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`;
-
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+    // We add a manual timeout promise for the supabase invocation
+    // because it might hang if the edge function or Gemini is unresponsive
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI Request timed out')), 25000);
     });
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API request failed');
+    const aiPromise = supabase.functions.invoke('gemini', {
+      body: { action: 'import_recipe', payload: { recipeUrl: url, pageContent } }
+    });
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = await Promise.race([aiPromise, timeoutPromise]) as any;
+    const { data, error } = result;
+
+    if (error) throw new Error(error.message || 'Supabase function failed');
+    if (data?.error) throw new Error(data.error || 'API request failed');
+
+    const text = data.text;
     if (!text) throw new Error('No content received from Gemini.');
 
-    const jsonMatch = text.match(/\{.*\}/s);
-    if (!jsonMatch) throw new Error('Could not parse recipe JSON from AI response.');
+    // Robust JSON object extraction
+    let jsonStr = '';
+    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (blockMatch) {
+      jsonStr = blockMatch[1];
+    } else {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start === -1 || end === -1 || start >= end) {
+        throw new Error('Could not find JSON object bounds.');
+      }
+      jsonStr = text.substring(start, end + 1);
+    }
 
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error('URL import error:', error);
     throw error;
+  }
+}
+
+export async function fetchUnsplashImage(query: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('unsplash', {
+      body: { query }
+    });
+
+    if (error) {
+      console.error('Supabase function error:', error.message);
+      return null;
+    }
+    
+    if (data.error) {
+      console.error('Unsplash API error:', data.error);
+      return null;
+    }
+
+    return data.imageUrl || null;
+  } catch (error) {
+    console.error('Error fetching image from Unsplash:', error);
+    return null;
   }
 }

@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Keyboard,
   TouchableWithoutFeedback,
   ActivityIndicator,
@@ -20,6 +19,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import {
   getPersonalRecipes,
@@ -64,6 +64,7 @@ export default function RecipeDetailScreen() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [baseNutrition, setBaseNutrition] = useState<NutritionData | null>(null);
   const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
@@ -92,6 +93,7 @@ export default function RecipeDetailScreen() {
   }, [language, recipe]);
 
   const loadRecipe = async () => {
+    setLoading(true);
     let found: Recipe | undefined;
     if (type === 'builtin') {
       found = BUILT_IN_RECIPES.find(r => r.id === id);
@@ -115,6 +117,7 @@ export default function RecipeDetailScreen() {
         )).start();
       }
     }
+    setLoading(false);
   };
 
   const checkFavorite = async () => {
@@ -269,12 +272,27 @@ export default function RecipeDetailScreen() {
     }).start();
   }, [isScaled]);
 
-  if (!recipe) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#f5a623" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Text style={{ color: '#fff', fontSize: 18, marginTop: 16 }}>Recipe not found</Text>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={{ marginTop: 24, padding: 12, backgroundColor: '#f5a623', borderRadius: 8 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );

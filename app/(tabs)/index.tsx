@@ -23,7 +23,8 @@ import { BUILT_IN_RECIPES, CATEGORIES } from '../../constants/recipes';
 import { Recipe } from '../../types';
 import { RecipeCard } from '../../components/RecipeCard';
 import { RecipeCardSkeleton } from '../../components/Skeleton';
-import { smartSearchRecipes } from '../../lib/gemini';
+import { SettingsModal } from '../../components/SettingsModal';
+import { smartSearchRecipes, fetchUnsplashImage } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -76,6 +77,7 @@ export default function BuiltInRecipesScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [recipesWithImages, setRecipesWithImages] = useState<Recipe[]>(BUILT_IN_RECIPES);
 
   const searchBarAnim = useRef(new Animated.Value(0)).current;
   const emptyFade = useRef(new Animated.Value(0)).current;
@@ -137,7 +139,7 @@ export default function BuiltInRecipesScreen() {
   };
 
   const filtered = useMemo(() => {
-    return BUILT_IN_RECIPES.filter(r => {
+    return recipesWithImages.filter(r => {
       const matchesCategory =
         selectedCategory === 'All' ||
         (selectedCategory === 'Favorites' ? favorites.includes(r.id) : r.category === selectedCategory);
@@ -340,64 +342,10 @@ export default function BuiltInRecipesScreen() {
         }
       />
 
-      {/* Settings Modal */}
-      <Modal
+      <SettingsModal
         visible={showSettings}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowSettings(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSettings(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.settingsSheet}>
-            <View style={styles.sheetHandle} />
-
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{t.settings.title}</Text>
-              <TouchableOpacity onPress={() => setShowSettings(false)} style={styles.sheetCloseBtn}>
-                <Ionicons name="close" size={20} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Language Section */}
-            <Text style={styles.sectionLabel}>{t.settings.language}</Text>
-            {LANG_OPTIONS.map(({ code, flag }) => (
-              <TouchableOpacity
-                key={code}
-                style={[styles.langOption, language === code && styles.langOptionActive]}
-                onPress={() => setLanguage(code)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.langFlag}>{flag}</Text>
-                <Text style={[styles.langName, language === code && styles.langNameActive]}>
-                  {t.languages[code]}
-                </Text>
-                {language === code && (
-                  <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} style={{ marginLeft: 'auto' }} />
-                )}
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity
-              style={styles.doneBtn}
-              onPress={() => setShowSettings(false)}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[COLORS.primary, '#c45a1a']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.doneBtnGradient}
-              >
-                <Text style={styles.doneBtnText}>{t.settings.done}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setShowSettings(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-nativ
 import { Ingredient } from '../types';
 import { formatAmount } from '../lib/scaler';
 import { useLanguage } from '../contexts/LanguageContext';
+import { COLORS } from '../constants/theme';
 
 interface IngredientRowProps {
   ingredient: Ingredient;
@@ -75,19 +76,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e35',
+    borderBottomColor: COLORS.border,
   },
   rowRTL: { flexDirection: 'row-reverse' },
-  ingredientHighlighted: { backgroundColor: '#2d2d1a' },
+  ingredientHighlighted: { backgroundColor: COLORS.primaryTint },
   dotWrapper: { marginRight: 10 },
   dotWrapperRTL: { marginRight: 0, marginLeft: 10 },
   ingredientDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#f5a623',
+    backgroundColor: COLORS.primary,
   },
-  ingredientName: { flex: 1, color: '#ddd', fontSize: 15 },
+  ingredientName: { flex: 1, color: COLORS.textPrimary, fontSize: 15 },
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   amountContainer: {
     flexDirection: 'row',
@@ -100,18 +101,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   ingredientAmount: { 
-    color: '#f5a623', 
+    color: COLORS.primary, 
     fontSize: 15, 
     fontWeight: '600',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(245, 166, 35, 0.3)',
+    borderBottomColor: COLORS.primaryTintDark,
     borderStyle: 'dashed',
   },
   amountInput: {
-    color: '#f5a623',
+    color: COLORS.primary,
     fontSize: 15,
     fontWeight: '700',
-    backgroundColor: '#2d2d4e',
+    backgroundColor: COLORS.surfaceDeep,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   unitText: { 
-    color: '#666', 
+    color: COLORS.textMuted, 
     fontSize: 14,
     minWidth: 30,
   },

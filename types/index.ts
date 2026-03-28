@@ -26,6 +26,7 @@ export interface Recipe {
   description_ar?: string;
   ingredients_ar?: Ingredient[];
   instructions_ar?: string[];
+  unsplashImageUrl?: string;
 }
 
 export interface ShoppingItem {
