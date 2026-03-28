@@ -15,11 +15,15 @@ import {
   Vibration,
   ImageBackground,
   Alert,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
+import { supabase } from '../../lib/supabase';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import {
   getPersonalRecipes,
@@ -136,6 +140,69 @@ export default function RecipeDetailScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (type === 'builtin') {
+      // Don't need to share a builtin recipe through DB, but we could link to app
+      Alert.alert(t.common.error || 'Cannot share', 'Built-in recipes cannot be shared yet.');
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Guest check
+      if (!session) {
+        Alert.alert('Sign In Required', 'You must create an account to share recipes with others.');
+        return;
+      }
+
+      // Make sure the recipe is upserted to Supabase to prevent silent failures
+      if (!recipe) return;
+      
+      const dbRecipe = {
+        id: recipe.id,
+        user_id: session.user.id,
+        title: recipe.title,
+        description: recipe.description,
+        servings: recipe.servings,
+        prep_time: recipe.prepTime,
+        cook_time: recipe.cookTime,
+        category: recipe.category,
+        image_uri: recipe.imageUri,
+        unsplash_image_url: recipe.unsplashImageUrl,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        created_at: recipe.createdAt
+      };
+
+      const { error } = await supabase
+        .from('recipes')
+        .upsert(dbRecipe, { onConflict: 'id' });
+        
+      if (error) {
+        console.error('Supabase upsert error:', error);
+        throw error;
+      }
+
+      // Generate deep link
+      const redirectUrl = Linking.createURL(`recipe/shared/${id}`);
+      const shareMessage = `${t.explore?.greeting || 'Check out this recipe'} ${recipe?.title}: ${redirectUrl}\n\nOr paste this code in the Import box: ${recipe?.id}`;
+
+      if (Platform.OS === 'web') {
+        await Clipboard.setStringAsync(shareMessage);
+        Alert.alert('Link Copied!', 'The recipe share link has been copied to your clipboard.');
+      } else {
+        await Share.share({
+          message: shareMessage,
+          url: redirectUrl,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error sharing recipe:', error);
+      Alert.alert('Error', error.message || 'Failed to share recipe. Please try again.');
+    }
+  };
+
   const fetchTotalNutrition = async (r: Recipe) => {
     setIsLoadingNutrition(true);
     setNutritionError(false);
@@ -247,10 +314,19 @@ export default function RecipeDetailScreen() {
   };
 
   const triggerPulse = () => {
+    pulseAnim.setValue(1);
     Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.05, duration: 100, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1.1, duration: 100, useNativeDriver: true }),
+      Animated.spring(pulseAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }),
     ]).start();
+  };
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   const resetScale = () => {
@@ -290,7 +366,7 @@ export default function RecipeDetailScreen() {
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
           <Text style={{ color: '#fff', fontSize: 18, marginTop: 16 }}>Recipe not found</Text>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={{ marginTop: 24, padding: 12, backgroundColor: '#f5a623', borderRadius: 8 }}>
+          <TouchableOpacity onPress={goBack} style={{ marginTop: 24, padding: 12, backgroundColor: '#f5a623', borderRadius: 8 }}>
             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -420,7 +496,7 @@ export default function RecipeDetailScreen() {
           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
           <SafeAreaView edges={['top'] as any}>
             <View style={styles.stickyHeaderContent}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
+              <TouchableOpacity onPress={goBack} style={styles.backBtnSmall}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <Text style={styles.stickyHeaderTitle} numberOfLines={1}>{recipe.title}</Text>
@@ -433,7 +509,7 @@ export default function RecipeDetailScreen() {
 
         {/* Initial floating header buttons */}
         <Animated.View style={[styles.headerOverlay, { opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCircle}>
+          <TouchableOpacity onPress={goBack} style={styles.backBtnCircle}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerRightActions}>
@@ -443,12 +519,20 @@ export default function RecipeDetailScreen() {
               </TouchableOpacity>
             )}
             {type === 'personal' && (
-              <TouchableOpacity
-                onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
-                style={styles.editBtnCircle}
-              >
-                <Ionicons name="pencil" size={18} color="#a78bfa" />
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  onPress={handleShare}
+                  style={styles.shareBtnCircle}
+                >
+                  <Ionicons name="share-outline" size={20} color="#38bdf8" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
+                  style={styles.editBtnCircle}
+                >
+                  <Ionicons name="pencil" size={18} color="#a78bfa" />
+                </TouchableOpacity>
+              </>
             )}
             <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnCircle}>
               <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#ef4444' : '#fff'} />
@@ -730,6 +814,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(167,139,250,0.3)',
+  },
+  shareBtnCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
   },
 
   scroll: { flex: 1 },
