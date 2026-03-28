@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Animated,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { useTheme, useStyles } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { SettingsModal } from '../../components/SettingsModal';
 
 export default function CommunityFeedScreen() {
   const router = useRouter();
@@ -30,6 +32,7 @@ export default function CommunityFeedScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
   
   const emptyFade = useRef(new Animated.Value(0)).current;
 
@@ -89,9 +92,16 @@ export default function CommunityFeedScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={[styles.header, isRTL && styles.headerRTL]}>
         <View style={styles.headerTextContainer}>
-          <Text style={[styles.greetingText, isRTL && styles.textRTL]}>Community</Text>
-          <Text style={[styles.titleText, isRTL && styles.textRTL]}>Public Feed</Text>
+          <Text style={[styles.greetingText, isRTL && styles.textRTL]}>{t.tabs?.community || 'Community'}</Text>
+          <Text style={[styles.titleText, isRTL && styles.textRTL]}>{t.community?.title || 'Public Feed'}</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => setShowSettings(true)}
+          style={styles.settingsBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="settings-outline" size={22} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -126,12 +136,13 @@ export default function CommunityFeedScreen() {
               <View style={styles.emptyIconContainer}>
                 <Ionicons name="earth" size={64} color={COLORS.textFaint} />
               </View>
-              <Text style={styles.emptyTitle}>Nothing here yet!</Text>
-              <Text style={styles.emptyText}>Be the first to share a recipe with the community.</Text>
+              <Text style={styles.emptyTitle}>{t.community?.emptyTitle || 'Nothing here yet!'}</Text>
+              <Text style={styles.emptyText}>{t.community?.emptyText || 'Be the first to share a recipe with the community.'}</Text>
             </Animated.View>
           ) : null
         }
       />
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
     </SafeAreaView>
   );
 }
@@ -154,6 +165,14 @@ const getStyles = (COLORS: any) => StyleSheet.create({
   },
   headerTextContainer: {
     flex: 1,
+  },
+  settingsBtn: {
+    padding: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    marginLeft: 16,
   },
   greetingText: {
     fontSize: 16,

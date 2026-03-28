@@ -94,7 +94,10 @@ export default function ShoppingScreen() {
 
   // Group items by category
   const groupedItems = sorted.reduce((acc, item) => {
-    const category = getCategoryForIngredient(item.name);
+    const rawCategory = getCategoryForIngredient(item.name);
+    // Use t.shoppingCategories if available, else raw
+    const category = t.shoppingCategories?.[rawCategory as keyof typeof t.shoppingCategories] || rawCategory;
+    
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -105,9 +108,10 @@ export default function ShoppingScreen() {
   // Convert to array format for SectionList
   const sections = Object.entries(groupedItems)
     .sort(([keyA], [keyB]) => {
-      // Always put "Other" at the bottom
-      if (keyA === 'Other') return 1;
-      if (keyB === 'Other') return -1;
+      // Put "Other" (or its translation) at the bottom
+      const otherLabel = t.shoppingCategories?.Other || 'Other';
+      if (keyA === otherLabel) return 1;
+      if (keyB === otherLabel) return -1;
       return keyA.localeCompare(keyB);
     })
     .map(([title, data]) => ({

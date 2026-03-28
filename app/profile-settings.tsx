@@ -28,7 +28,7 @@ export default function ProfileSettingsScreen() {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        Alert.alert('Not logged in', 'You must be logged in to view profile settings.');
+        Alert.alert(t.common?.error || 'Not logged in', t.profile?.notLoggedIn || 'You must be logged in to view profile settings.');
         router.back();
         return;
       }
@@ -58,21 +58,21 @@ export default function ProfileSettingsScreen() {
       });
 
       if (error) throw error;
-      Alert.alert('Success', 'Profile updated successfully.');
+      Alert.alert(t.auth?.successTitle || 'Success', t.profile?.success || 'Profile updated successfully.');
       router.back();
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', error.message || 'Could not update profile.');
+      Alert.alert(t.common?.error || 'Error', error.message || 'Could not update profile.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.profile?.logout || 'Log Out', t.profile?.logoutConfirm || 'Are you sure you want to log out?', [
+      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
       {
-        text: 'Log Out',
+        text: t.profile?.logout || 'Log Out',
         style: 'destructive',
         onPress: async () => {
           await supabase.auth.signOut();
@@ -93,16 +93,16 @@ export default function ProfileSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Settings</Text>
+        <Text style={styles.headerTitle}>{t.profile?.title || 'Account Settings'}</Text>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
           {saving ? (
             <ActivityIndicator size="small" color={COLORS.primary} />
           ) : (
-            <Text style={styles.saveBtnText}>Save</Text>
+            <Text style={styles.saveBtnText}>{t.profile?.save || 'Save'}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -121,43 +121,43 @@ export default function ProfileSettingsScreen() {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.emailLabel || 'Email Address'}</Text>
           <TextInput
-            style={[styles.input, { color: COLORS.textMuted }]}
+            style={[styles.input, { color: COLORS.textMuted }, isRTL && styles.textRTL]}
             value={email}
             editable={false}
             selectTextOnFocus={false}
           />
-          <Text style={styles.helperText}>Email cannot be changed here.</Text>
+          <Text style={[styles.helperText, isRTL && styles.textRTL]}>{t.profile?.emailHelper || 'Email cannot be changed here.'}</Text>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.nameLabel || 'Full Name'}</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, isRTL && styles.textRTL]}
             value={fullName}
             onChangeText={setFullName}
-            placeholder="Enter your name"
+            placeholder={t.profile?.namePlaceholder || 'Enter your name'}
             placeholderTextColor={COLORS.textMuted}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Avatar URL</Text>
+          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.avatarLabel || 'Avatar URL'}</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, isRTL && styles.textRTL]}
             value={avatarUrl}
             onChangeText={setAvatarUrl}
-            placeholder="https://example.com/avatar.png"
+            placeholder={t.profile?.avatarPlaceholder || 'https://example.com/avatar.png'}
             placeholderTextColor={COLORS.textMuted}
             autoCapitalize="none"
             keyboardType="url"
           />
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.logoutBtn, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-          <Text style={styles.logoutBtnText}>Log Out</Text>
+          <Text style={styles.logoutBtnText}>{t.profile?.logout || 'Log Out'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -168,6 +168,10 @@ const getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   center: {
     justifyContent: 'center',
