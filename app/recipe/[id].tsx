@@ -40,7 +40,7 @@ import { NutritionSkeleton } from '../../components/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -60,6 +60,8 @@ const SCALE_PRESETS = [
 ];
 
 export default function RecipeDetailScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
   const { t, language, isRTL } = useLanguage();
@@ -374,7 +376,7 @@ export default function RecipeDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -385,7 +387,7 @@ export default function RecipeDetailScreen() {
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
           <Text style={{ color: COLORS.textPrimary, fontSize: 18, marginTop: 16 }}>Recipe not found</Text>
@@ -516,7 +518,7 @@ export default function RecipeDetailScreen() {
   return (
     <TouchableWithoutFeedback onPress={() => { setEditingIndex(null); Keyboard.dismiss(); }}>
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
 
         {/* Animated Sticky Header */}
         <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity }]}>
@@ -762,7 +764,7 @@ export default function RecipeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 

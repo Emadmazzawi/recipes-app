@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-nativ
 import { Ingredient } from '../types';
 import { formatAmount } from '../lib/scaler';
 import { useLanguage } from '../contexts/LanguageContext';
-import { COLORS } from '../constants/theme';
+import { useTheme, useStyles } from '../contexts/ThemeContext';
 
 interface IngredientRowProps {
   ingredient: Ingredient;
@@ -20,6 +20,8 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   isEditing,
   onStartEditing
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = useStyles(getStyles);
   const { isRTL } = useLanguage();
   const [inputValue, setInputValue] = useState(formatAmount(ingredient.amount));
 
@@ -70,7 +72,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   ingredientRow: {
     flexDirection: 'row',
     alignItems: 'center',

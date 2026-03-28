@@ -21,9 +21,11 @@ import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import { getPersonalRecipes } from '../../lib/storage';
 import { Recipe } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 
 export default function CookModeScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
   const { t, language, isRTL } = useLanguage();
@@ -268,7 +270,7 @@ export default function CookModeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={styles.bg}>
         <SafeAreaView style={styles.safeArea}>
 
@@ -426,7 +428,7 @@ export default function CookModeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   bg: { flex: 1, backgroundColor: COLORS.bg },
   safeArea: { flex: 1, paddingHorizontal: 24, paddingBottom: 20 },

@@ -32,7 +32,7 @@ import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -46,6 +46,8 @@ function generateId() {
 }
 
 export default function NewRecipeScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const router = useRouter();
   const { editId, importUrl } = useLocalSearchParams<{ editId?: string; importUrl?: string }>();
   const isEditing = !!editId;
@@ -419,7 +421,7 @@ export default function NewRecipeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn}>
           <Ionicons name="close" size={26} color={COLORS.textMuted} />
@@ -743,7 +745,7 @@ export default function NewRecipeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {

@@ -15,10 +15,12 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function UpdatePasswordScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function UpdatePasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Decorative Orbs */}
       <View style={styles.orb1} />
@@ -121,7 +123,7 @@ export default function UpdatePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   orb1: {
     position: 'absolute',

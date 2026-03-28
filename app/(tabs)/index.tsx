@@ -33,7 +33,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 import * as Haptics from 'expo-haptics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -73,6 +73,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function BuiltInRecipesScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const router = useRouter();
   const { t, language, setLanguage, isRTL } = useLanguage();
   const [search, setSearch] = useState('');
@@ -351,7 +353,7 @@ export default function BuiltInRecipesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' } as any]}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Recipe list */}
       <FlatList
@@ -411,7 +413,7 @@ export default function BuiltInRecipesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     flexDirection: 'row',

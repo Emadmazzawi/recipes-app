@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Recipe } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../constants/theme';
+import { useTheme, useStyles } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCategoryLabel } from '../lib/i18n';
 
@@ -33,6 +33,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   reason,
   index = 0,
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = useStyles(getStyles);
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
@@ -263,7 +265,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   return cardContentInner;
 };
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   cardContainer: {
     marginBottom: 14,
     borderRadius: 22,

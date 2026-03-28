@@ -18,11 +18,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
 import { savePersonalRecipe } from '../../../lib/storage';
 import { Recipe } from '../../../types';
-import { COLORS } from '../../../constants/theme';
+import { useTheme, useStyles } from '../../../contexts/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../../lib/i18n';
 
 export default function SharedRecipeScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t, language, isRTL } = useLanguage();
@@ -228,7 +230,7 @@ export default function SharedRecipeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorText: { color: COLORS.textPrimary, fontSize: 18, textAlign: 'center', marginTop: 16, marginBottom: 24 },

@@ -23,9 +23,11 @@ import {
 import { ShoppingItem } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { SettingsModal } from '../../components/SettingsModal';
-import { COLORS } from '../../constants/theme';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 
 export default function ShoppingScreen() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const { t, isRTL } = useLanguage();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,7 +127,7 @@ export default function ShoppingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <View>
@@ -202,7 +204,7 @@ export default function ShoppingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
 

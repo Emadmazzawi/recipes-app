@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
-import { COLORS } from '../constants/theme';
+import { useTheme, useStyles } from '../contexts/ThemeContext';
 
 interface SettingsModalProps {
   visible: boolean;
@@ -20,6 +20,8 @@ const LANG_OPTIONS: { code: 'en' | 'he' | 'ar'; flag: string }[] = [
 ];
 
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
+  const { colors: COLORS, isDark, theme, setTheme } = useTheme();
+  const styles = useStyles(getStyles);
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
   const [session, setSession] = useState<any>(null);
@@ -77,6 +79,34 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             </Text>
           </TouchableOpacity>
 
+          {/* Theme Section */}
+          <Text style={styles.sectionLabel}>Theme</Text>
+          <View style={styles.themeToggleRow}>
+            <TouchableOpacity
+              style={[styles.themeOption, theme === 'light' && styles.themeOptionActive]}
+              onPress={() => setTheme('light')}
+            >
+              <Ionicons name="sunny" size={24} color={theme === 'light' ? COLORS.primary : COLORS.textMuted} />
+              <Text style={[styles.themeText, theme === 'light' && styles.themeTextActive]}>Light</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.themeOption, theme === 'dark' && styles.themeOptionActive]}
+              onPress={() => setTheme('dark')}
+            >
+              <Ionicons name="moon" size={24} color={theme === 'dark' ? COLORS.primary : COLORS.textMuted} />
+              <Text style={[styles.themeText, theme === 'dark' && styles.themeTextActive]}>Dark</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.themeOption, theme === 'system' && styles.themeOptionActive]}
+              onPress={() => setTheme('system')}
+            >
+              <Ionicons name="phone-portrait" size={24} color={theme === 'system' ? COLORS.primary : COLORS.textMuted} />
+              <Text style={[styles.themeText, theme === 'system' && styles.themeTextActive]}>System</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Language Section */}
           <Text style={styles.sectionLabel}>{t.settings?.language || 'Language'}</Text>
           {LANG_OPTIONS.map(({ code, flag }) => (
@@ -112,7 +142,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -172,6 +202,34 @@ const styles = StyleSheet.create({
   authBtnText: {
     fontSize: 16,
     fontFamily: 'Inter_600SemiBold',
+  },
+  themeToggleRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    gap: 8,
+  },
+  themeOptionActive: {
+    backgroundColor: COLORS.primaryTintDark,
+    borderColor: COLORS.primaryTint,
+  },
+  themeText: {
+    fontSize: 14,
+    fontFamily: 'Inter_600SemiBold',
+    color: COLORS.textMuted,
+  },
+  themeTextActive: {
+    color: COLORS.primary,
   },
   langOption: {
     flexDirection: 'row',

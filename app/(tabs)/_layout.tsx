@@ -4,18 +4,23 @@ import { BlurView } from 'expo-blur';
 import { StyleSheet, Platform } from 'react-native';
 import { useLanguage } from '../../contexts/LanguageContext';
 import * as Haptics from 'expo-haptics';
+import { useTheme, useStyles } from '../../contexts/ThemeContext';
 
 function FloatingTabBarBackground() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   return (
     <BlurView
       intensity={80}
-      tint="light"
+      tint={isDark ? "dark" : "light"}
       style={[StyleSheet.absoluteFill, styles.blurInner]}
     />
   );
 }
 
 export default function TabsLayout() {
+  const { colors: COLORS, isDark } = useTheme();
+  const styles = useStyles(getStyles);
   const { t } = useLanguage();
 
   return (
@@ -88,7 +93,7 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   blurInner: {
     borderRadius: 28,
     borderWidth: 1,
