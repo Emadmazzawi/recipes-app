@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useKeepAwake } from 'expo-keep-awake';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import { getPersonalRecipes } from '../../lib/storage';
 import { Recipe } from '../../types';
@@ -25,6 +26,9 @@ export default function CookModeScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const router = useRouter();
   const { t, language, isRTL } = useLanguage();
+  
+  // Keep the screen awake while cooking!
+  useKeepAwake();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -108,10 +112,60 @@ export default function CookModeScreen() {
   const startTimer = () => {
     const mins = parseInt(timerInput) || 1;
     const secs = mins * 60;
+    startSmartTimer(secs);
+    setShowTimerModal(false);
+  };
+
+  const startSmartTimer = (secs: number) => {
     setTimerSeconds(secs);
     setTimerTotal(secs);
     setTimerActive(true);
-    setShowTimerModal(false);
+  };
+
+  const renderStepTextWithTimers = (text: string) => {
+    // Regex to match "X min/minute/minutes/hr/hour/hours/sec/second/seconds"
+    const timeRegex = /(\d+)\s*(min|minute|minutes|hr|hour|hours|sec|second|seconds)s?\b/gi;
+    
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = timeRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      const timeString = match[0];
+      const amount = parseInt(match[1]);
+      const unit = match[2].toLowerCase();
+
+      let seconds = 0;
+      if (unit.startsWith('hr') || unit.startsWith('hour')) {
+        seconds = amount * 3600;
+      } else if (unit.startsWith('min')) {
+        seconds = amount * 60;
+      } else if (unit.startsWith('sec')) {
+        seconds = amount;
+      }
+
+      parts.push(
+        <Text 
+          key={`time-${match.index}`} 
+          style={styles.tappableTime} 
+          onPress={() => startSmartTimer(seconds)}
+        >
+          {timeString} <Ionicons name="timer" size={18} color={COLORS.primary} />
+        </Text>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
   };
 
   const formatTime = (secs: number) => {
@@ -220,7 +274,9 @@ export default function CookModeScreen() {
             <View style={styles.stepBadge}>
               <Text style={styles.stepBadgeText}>{currentStep + 1}</Text>
             </View>
-            <Text style={[styles.stepText, isRTL && styles.textRTL]}>{localizedSteps[currentStep]}</Text>
+            <Text style={[styles.stepText, isRTL && styles.textRTL]}>
+              {renderStepTextWithTimers(localizedSteps[currentStep])}
+            </Text>
           </Animated.View>
 
           {/* Timer display */}
@@ -432,6 +488,11 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  tappableTime: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    backgroundColor: COLORS.primaryTint,
   },
 
   timerDisplay: {
