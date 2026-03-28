@@ -70,6 +70,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          tabBarLabel: 'Community', // You can add translation string if needed later
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'people' : 'people-outline'} color={color} size={size + 2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-recipes"
         options={{
           title: 'My Kitchen',

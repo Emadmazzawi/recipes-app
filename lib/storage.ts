@@ -22,9 +22,9 @@ export async function getPersonalRecipes(): Promise<Recipe[]> {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Supabase error fetching recipes:', error);
+        console.error('Supabase error fetching recipes (offline?):', error);
       } else if (data) {
-        return data.map((row: any) => {
+        const parsedRecipes = data.map((row: any) => {
           let parsedIngredients = [];
           let parsedSteps = [];
           try {
@@ -50,16 +50,27 @@ export async function getPersonalRecipes(): Promise<Recipe[]> {
             createdAt: row.created_at,
           } as Recipe;
         });
+        
+        // Offline Cache: Update local storage with fresh remote data
+        await AsyncStorage.setItem(PERSONAL_RECIPES_KEY, JSON.stringify(parsedRecipes));
+        return parsedRecipes;
       }
     }
 
-    const data = await AsyncStorage.getItem(PERSONAL_RECIPES_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
+    // Fallback: Read from Offline Cache
+    const localData = await AsyncStorage.getItem(PERSONAL_RECIPES_KEY);
+    if (!localData) return [];
+    const parsed = JSON.parse(localData);
     return Array.isArray(parsed) ? parsed.filter(r => r && typeof r === 'object' && r.id && r.title) : [];
   } catch (error) {
     console.error('Error reading personal recipes:', error);
-    return [];
+    // Ultimate fallback
+    try {
+      const localData = await AsyncStorage.getItem(PERSONAL_RECIPES_KEY);
+      return localData ? JSON.parse(localData) : [];
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -152,17 +163,25 @@ export async function getFavorites(): Promise<string[]> {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Supabase error fetching favorites:', error);
+        console.error('Supabase error fetching favorites (offline?):', error);
       } else if (data) {
-        return data.map(f => f.recipe_id);
+        const favs = data.map(f => f.recipe_id);
+        // Offline Cache
+        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+        return favs;
       }
     }
 
-    const data = await AsyncStorage.getItem(FAVORITES_KEY);
-    return data ? JSON.parse(data) : [];
+    const localData = await AsyncStorage.getItem(FAVORITES_KEY);
+    return localData ? JSON.parse(localData) : [];
   } catch (error) {
     console.error('Error reading favorites:', error);
-    return [];
+    try {
+      const localData = await AsyncStorage.getItem(FAVORITES_KEY);
+      return localData ? JSON.parse(localData) : [];
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -239,6 +258,76 @@ export async function importRecipes(jsonString: string): Promise<void> {
   } catch (error) {
     console.error('Error importing recipes:', error);
     throw error;
+  }
+}
+
+export async function publishRecipe(id: string): Promise<void> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Must be signed in to publish recipes.");
+
+    const { error } = await supabase
+      .from('recipes')
+      .update({ is_public: true })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Supabase error publishing recipe:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error publishing recipe:', error);
+    throw error;
+  }
+}
+
+export async function getPublicRecipes(): Promise<Recipe[]> {
+  try {
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error fetching public recipes:', error);
+      return [];
+    }
+    
+    if (data) {
+      return data.map((row: any) => {
+        let parsedIngredients = [];
+        let parsedSteps = [];
+        try {
+          parsedIngredients = typeof row.ingredients === 'string' ? JSON.parse(row.ingredients) : row.ingredients;
+        } catch (e) {}
+        try {
+          parsedSteps = typeof row.steps === 'string' ? JSON.parse(row.steps) : row.steps;
+        } catch (e) {}
+
+        return {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          servings: row.servings,
+          prepTime: row.prep_time,
+          cookTime: row.cook_time,
+          category: row.category,
+          imageUri: row.image_uri,
+          unsplashImageUrl: row.unsplash_image_url,
+          ingredients: parsedIngredients,
+          steps: parsedSteps,
+          isBuiltIn: row.is_built_in,
+          createdAt: row.created_at,
+          is_public: row.is_public,
+        } as Recipe;
+      });
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching public recipes:', error);
+    return [];
   }
 }
 

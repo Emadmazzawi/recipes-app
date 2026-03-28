@@ -194,7 +194,8 @@ export default function RecipeDetailScreen() {
         unsplash_image_url: recipe.unsplashImageUrl,
         ingredients: recipe.ingredients,
         steps: recipe.steps,
-        created_at: recipe.createdAt
+        created_at: recipe.createdAt,
+        is_public: true // Set to public so other users can view it and it appears on Community Feed
       };
 
       const { error } = await supabase

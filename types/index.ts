@@ -27,6 +27,7 @@ export interface Recipe {
   ingredients_ar?: Ingredient[];
   instructions_ar?: string[];
   unsplashImageUrl?: string;
+  is_public?: boolean;
 }
 
 export interface ShoppingItem {
