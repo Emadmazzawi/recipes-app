@@ -211,10 +211,8 @@ export default function BuiltInRecipesScreen() {
     { code: 'ar', flag: '🇸🇦' },
   ];
 
-  return (
-    <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' } as any]}>
-      <StatusBar barStyle="dark-content" />
-
+  const renderHeader = () => (
+    <>
       {/* Header */}
       <View style={[styles.header, isRTL && styles.headerRTL]}>
         <View>
@@ -318,9 +316,16 @@ export default function BuiltInRecipesScreen() {
           )}
         />
       </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, isRTL && { direction: 'rtl' } as any]}>
+      <StatusBar barStyle="dark-content" />
 
       {/* Recipe list */}
       <FlatList
+        ListHeaderComponent={renderHeader}
         data={(isLoading ? [1, 2, 3] : filtered) as any[]}
         keyExtractor={(item, index) => (isLoading ? `skeleton-${index}` : (item as Recipe).id)}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 140, paddingTop: 5 }}
