@@ -72,12 +72,27 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
           {/* Account Section */}
           <Text style={styles.sectionLabel}>Account</Text>
-          <TouchableOpacity style={styles.authBtn} onPress={handleAuthAction}>
-            <Ionicons name={session ? 'log-out-outline' : 'log-in-outline'} size={20} color={session ? COLORS.error : COLORS.primary} />
-            <Text style={[styles.authBtnText, { color: session ? COLORS.error : COLORS.primary }]}>
-              {session ? 'Log Out' : 'Log In / Sign Up'}
-            </Text>
-          </TouchableOpacity>
+          {session ? (
+            <TouchableOpacity 
+              style={styles.authBtn} 
+              onPress={() => {
+                onClose();
+                router.push('/profile-settings');
+              }}
+            >
+              <Ionicons name="person-circle-outline" size={20} color={COLORS.primary} />
+              <Text style={[styles.authBtnText, { color: COLORS.primary }]}>
+                Manage Profile
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.authBtn} onPress={handleAuthAction}>
+              <Ionicons name="log-in-outline" size={20} color={COLORS.primary} />
+              <Text style={[styles.authBtnText, { color: COLORS.primary }]}>
+                Log In / Sign Up
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Theme Section */}
           <Text style={styles.sectionLabel}>Theme</Text>

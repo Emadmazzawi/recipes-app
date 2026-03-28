@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -24,6 +24,7 @@ import { ShoppingItem } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { SettingsModal } from '../../components/SettingsModal';
 import { useTheme, useStyles } from '../../contexts/ThemeContext';
+import { getCategoryForIngredient } from '../../lib/categories';
 
 export default function ShoppingScreen() {
   const { colors: COLORS, isDark } = useTheme();
@@ -90,6 +91,29 @@ export default function ShoppingScreen() {
   const sorted = [...items].sort((a, b) => Number(a.checked) - Number(b.checked));
   const checkedCount = items.filter(i => i.checked).length;
   const totalCount = items.length;
+
+  // Group items by category
+  const groupedItems = sorted.reduce((acc, item) => {
+    const category = getCategoryForIngredient(item.name);
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
+    return acc;
+  }, {} as Record<string, ShoppingItem[]>);
+
+  // Convert to array format for SectionList
+  const sections = Object.entries(groupedItems)
+    .sort(([keyA], [keyB]) => {
+      // Always put "Other" at the bottom
+      if (keyA === 'Other') return 1;
+      if (keyB === 'Other') return -1;
+      return keyA.localeCompare(keyB);
+    })
+    .map(([title, data]) => ({
+      title,
+      data,
+    }));
 
   const renderItem = ({ item }: { item: ShoppingItem }) => (
     <View style={[styles.itemRow, item.checked && styles.itemRowChecked, isRTL && { flexDirection: 'row-reverse', paddingRight: 0, paddingLeft: 12 }]}>
@@ -170,8 +194,8 @@ export default function ShoppingScreen() {
         </View>
       )}
 
-      <FlatList
-        data={sorted}
+      <SectionList
+        sections={sections}
         keyExtractor={item => item.id}
         contentContainerStyle={{
           paddingHorizontal: 20,
@@ -180,6 +204,12 @@ export default function ShoppingScreen() {
           flexGrow: 1,
         }}
         renderItem={renderItem}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={[styles.sectionHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+            <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{title}</Text>
+          </View>
+        )}
+        stickySectionHeadersEnabled={false}
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.empty}>
@@ -258,6 +288,17 @@ const getStyles = (COLORS: any) => StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.success,
     borderRadius: 2,
+  },
+
+  sectionHeader: {
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    color: COLORS.textPrimary,
   },
 
   itemRow: {
