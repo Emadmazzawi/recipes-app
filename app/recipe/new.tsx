@@ -441,11 +441,15 @@ export default function NewRecipeScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.formContent}>
+        <ScrollView 
+          style={styles.scroll} 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formContent}>
 
-              {/* Photo section */}
+            {/* Photo section */}
               <Animated.View style={[styles.section, getAnimatedStyle(0)]}>
                 <TouchableOpacity onPress={pickPhoto} style={styles.photoBtn} activeOpacity={0.8}>
                   {imageUri ? (
@@ -694,7 +698,6 @@ export default function NewRecipeScreen() {
               </Animated.View>
 
             </View>
-          </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
 
