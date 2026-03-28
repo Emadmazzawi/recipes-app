@@ -141,9 +141,25 @@ export default function RecipeDetailScreen() {
   };
 
   const handleShare = async () => {
+    if (!recipe) return;
+
     if (type === 'builtin') {
-      // Don't need to share a builtin recipe through DB, but we could link to app
-      Alert.alert(t.common.error || 'Cannot share', 'Built-in recipes cannot be shared yet.');
+      try {
+        const redirectUrl = Linking.createURL(`recipe/${recipe.id}?type=builtin`);
+        const shareMessage = `${t.explore?.greeting || 'Check out this recipe'} ${recipe?.title}: ${redirectUrl}`;
+
+        if (Platform.OS === 'web') {
+          await Clipboard.setStringAsync(shareMessage);
+          Alert.alert('Link Copied!', 'The recipe link has been copied to your clipboard.');
+        } else {
+          await Share.share({
+            message: shareMessage,
+            url: redirectUrl,
+          });
+        }
+      } catch (error: any) {
+        console.error('Error sharing built-in recipe:', error);
+      }
       return;
     }
 
@@ -518,21 +534,19 @@ export default function RecipeDetailScreen() {
                 <Ionicons name="refresh" size={20} color="#f5a623" />
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              onPress={handleShare}
+              style={styles.shareBtnCircle}
+            >
+              <Ionicons name="share-outline" size={20} color="#38bdf8" />
+            </TouchableOpacity>
             {type === 'personal' && (
-              <>
-                <TouchableOpacity
-                  onPress={handleShare}
-                  style={styles.shareBtnCircle}
-                >
-                  <Ionicons name="share-outline" size={20} color="#38bdf8" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
-                  style={styles.editBtnCircle}
-                >
-                  <Ionicons name="pencil" size={18} color="#a78bfa" />
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
+                style={styles.editBtnCircle}
+              >
+                <Ionicons name="pencil" size={18} color="#a78bfa" />
+              </TouchableOpacity>
             )}
             <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnCircle}>
               <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#ef4444' : '#fff'} />

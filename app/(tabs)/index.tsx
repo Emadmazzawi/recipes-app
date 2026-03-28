@@ -28,6 +28,10 @@ import { smartSearchRecipes, fetchUnsplashImage } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { supabase } from '../../lib/supabase';
+import * as Linking from 'expo-linking';
+import * as Clipboard from 'expo-clipboard';
+import { Share, Alert } from 'react-native';
 import { getCategoryLabel } from '../../lib/i18n';
 import { COLORS } from '../../constants/theme';
 
@@ -110,6 +114,27 @@ export default function BuiltInRecipesScreen() {
     } else {
       await addFavorite(id);
       setFavorites(prev => [...prev, id]);
+    }
+  };
+
+  const handleShare = async (recipe: Recipe) => {
+    try {
+      // For built-in recipes, we don't strictly need to upload them since they are bundled, 
+      // but to unify the experience we can share a link directly to it
+      const redirectUrl = Linking.createURL(`recipe/${recipe.id}?type=builtin`);
+      const shareMessage = `${t.explore.greeting || 'Check out this recipe'} ${recipe.title}: ${redirectUrl}`;
+
+      if (Platform.OS === 'web') {
+        await Clipboard.setStringAsync(shareMessage);
+        Alert.alert('Link Copied!', 'The recipe link has been copied to your clipboard.');
+      } else {
+        await Share.share({
+          message: shareMessage,
+          url: redirectUrl,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error sharing recipe:', error);
     }
   };
 
@@ -307,6 +332,7 @@ export default function BuiltInRecipesScreen() {
               recipe={item as Recipe}
               onPress={openRecipe}
               onToggleFavorite={toggleFavorite}
+              onShare={handleShare}
               isFavorited={favorites.includes((item as Recipe).id)}
               categoryColor={getCategoryColor((item as Recipe).category)}
               reason={isSmartSearch ? smartResults[(item as Recipe).id] : undefined}
