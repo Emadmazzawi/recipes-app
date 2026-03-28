@@ -182,3 +182,37 @@ export async function fetchUnsplashImage(query: string): Promise<string | null> 
     return null;
   }
 }
+
+export async function generateRecipeFromIngredients(ingredients: string[]): Promise<any> {
+  try {
+    const { data, error } = await supabase.functions.invoke('gemini', {
+      body: { action: 'generate_pantry', payload: { ingredients } }
+    });
+
+    if (error) throw new Error(error.message || 'Supabase function failed');
+    if (data?.error) throw new Error(data.error || 'API request failed');
+
+    const text = data.text;
+    if (!text) throw new Error('No content received from Gemini.');
+
+    // Robust JSON object extraction
+    let jsonStr = '';
+    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (blockMatch) {
+      jsonStr = blockMatch[1];
+    } else {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start === -1 || end === -1 || start >= end) {
+        throw new Error('Could not find JSON object bounds.');
+      }
+      jsonStr = text.substring(start, end + 1);
+    }
+
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('Pantry generation error:', error);
+    throw error;
+  }
+}
+

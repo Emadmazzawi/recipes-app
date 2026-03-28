@@ -279,6 +279,28 @@ export default function BuiltInRecipesScreen() {
         </TouchableOpacity>
       </Animated.View>
 
+      {/* Pantry Mode Banner */}
+      <TouchableOpacity 
+        style={styles.pantryBanner} 
+        activeOpacity={0.8}
+        onPress={() => router.push('/recipe/pantry')}
+      >
+        <LinearGradient 
+          colors={[COLORS.surfaceDeep, COLORS.surface]} 
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.pantryBannerGradient}
+        >
+          <View style={styles.pantryIconWrap}>
+            <Ionicons name="nutrition" size={24} color={COLORS.primary} />
+          </View>
+          <View style={styles.pantryTextWrap}>
+            <Text style={[styles.pantryBannerTitle, isRTL && styles.textRTL]}>What's in your fridge?</Text>
+            <Text style={[styles.pantryBannerSub, isRTL && styles.textRTL]}>Generate a custom recipe instantly</Text>
+          </View>
+          <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={20} color={COLORS.textMuted} />
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* Category filter */}
       <View style={styles.categoryContainer}>
         <FlatList
@@ -458,6 +480,44 @@ const styles = StyleSheet.create({
     height: 54,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  pantryBanner: {
+    marginHorizontal: 20,
+    marginTop: 15,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  pantryBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  pantryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+  },
+  pantryTextWrap: {
+    flex: 1,
+  },
+  pantryBannerTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 4,
+  },
+  pantryBannerSub: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
   },
   categoryContainer: { height: 75 },
   categoryChip: {

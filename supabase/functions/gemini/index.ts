@@ -85,6 +85,24 @@ serve(async (req) => {
         : `Extract the complete recipe from this URL: ${recipeUrl}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`;
       
       bodyData.contents[0].parts = [{ text: promptText }];
+    } else if (action === 'generate_pantry') {
+      const { ingredients } = payload;
+      const recipeSchema = `{
+        "title": "string",
+        "description": "string",
+        "servings": number,
+        "prepTime": number,
+        "cookTime": number,
+        "category": "Main|Appetizer|Dessert|Baking|Soup|Salad|Breakfast|Drinks|Other",
+        "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
+        "steps": ["string"]
+      }`;
+      
+      promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
+Create a delicious recipe that uses these ingredients. You may also include very basic household staples (like salt, pepper, cooking oil, water, butter, basic spices).
+Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only valid JSON, no markdown formatting outside of the JSON block.`;
+      
+      bodyData.contents[0].parts = [{ text: promptText }];
     } else {
       throw new Error('Unknown action specified');
     }
