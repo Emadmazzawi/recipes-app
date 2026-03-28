@@ -40,6 +40,7 @@ import { NutritionSkeleton } from '../../components/Skeleton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
+import { COLORS } from '../../constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -303,14 +304,14 @@ export default function RecipeDetailScreen() {
     if (!recipe) return [];
     if (language === 'he' && recipe.ingredients_he && recipe.ingredients_he.length > 0) return recipe.ingredients_he;
     if (language === 'ar' && recipe.ingredients_ar && recipe.ingredients_ar.length > 0) return recipe.ingredients_ar;
-    return recipe.ingredients;
+    return recipe.ingredients || [];
   };
 
   const getLocalizedSteps = (): string[] => {
     if (!recipe) return [];
     if (language === 'he' && recipe.instructions_he && recipe.instructions_he.length > 0) return recipe.instructions_he;
     if (language === 'ar' && recipe.instructions_ar && recipe.instructions_ar.length > 0) return recipe.instructions_ar;
-    return recipe.steps;
+    return recipe.steps || [];
   };
 
   const handleAddToShoppingList = async () => {
@@ -367,9 +368,9 @@ export default function RecipeDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f5a623" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       </SafeAreaView>
     );
@@ -378,12 +379,12 @@ export default function RecipeDetailScreen() {
   if (!recipe) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-          <Text style={{ color: '#fff', fontSize: 18, marginTop: 16 }}>Recipe not found</Text>
-          <TouchableOpacity onPress={goBack} style={{ marginTop: 24, padding: 12, backgroundColor: '#f5a623', borderRadius: 8 }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
+          <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
+          <Text style={{ color: COLORS.textPrimary, fontSize: 18, marginTop: 16 }}>Recipe not found</Text>
+          <TouchableOpacity onPress={goBack} style={{ marginTop: 24, padding: 12, backgroundColor: COLORS.primary, borderRadius: 8 }}>
+            <Text style={{ color: COLORS.textPrimary, fontWeight: 'bold' }}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -404,7 +405,7 @@ export default function RecipeDetailScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.nutritionInfo}</Text>
           <View style={styles.nutritionError}>
-            <Ionicons name="alert-circle-outline" size={24} color="#64748b" />
+            <Ionicons name="alert-circle-outline" size={24} color={COLORS.textMuted} />
             <Text style={styles.nutritionErrorText}>{t.recipe.nutritionUnavailable}</Text>
           </View>
         </View>
@@ -413,9 +414,9 @@ export default function RecipeDetailScreen() {
     if (!baseNutrition) return null;
 
     const items = [
-      { label: t.recipe.calories, key: 'calories', val: Math.round(baseNutrition.calories * scaleFactor), unit: 'kcal', icon: 'flame', color: '#f5a623' },
+      { label: t.recipe.calories, key: 'calories', val: Math.round(baseNutrition.calories * scaleFactor), unit: 'kcal', icon: 'flame', color: COLORS.primary },
       { label: t.recipe.protein, key: 'protein', val: Math.round(baseNutrition.protein * scaleFactor), unit: 'g', icon: 'barbell', color: '#4ade80' },
-      { label: t.recipe.carbs, key: 'carbs', val: Math.round(baseNutrition.carbs * scaleFactor), unit: 'g', icon: 'pizza', color: '#60a5fa' },
+      { label: t.recipe.carbs, key: 'carbs', val: Math.round(baseNutrition.carbs * scaleFactor), unit: 'g', icon: 'pizza', color: COLORS.primary },
       { label: t.recipe.fat, key: 'fat', val: Math.round(baseNutrition.fat * scaleFactor), unit: 'g', icon: 'water', color: '#fb7185' },
     ];
 
@@ -481,19 +482,19 @@ export default function RecipeDetailScreen() {
 
       <View style={[styles.heroStats, isRTL && styles.rowRTL]}>
         <View style={styles.heroStatItem}>
-          <Ionicons name="time-outline" size={15} color="#94a3b8" />
+          <Ionicons name="time-outline" size={15} color={COLORS.textSecondary} />
           <Text style={styles.heroStatLabel}>{t.recipe.prep}</Text>
           <Text style={styles.heroStatText}>{recipe.prepTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
-          <Ionicons name="flame-outline" size={15} color="#94a3b8" />
+          <Ionicons name="flame-outline" size={15} color={COLORS.textSecondary} />
           <Text style={styles.heroStatLabel}>{t.recipe.cook}</Text>
           <Text style={styles.heroStatText}>{recipe.cookTime} {t.common.min}</Text>
         </View>
         <View style={styles.heroStatDivider} />
         <View style={styles.heroStatItem}>
-          <Ionicons name="people" size={15} color="#f5a623" />
+          <Ionicons name="people" size={15} color={COLORS.primary} />
           <Animated.Text style={[styles.heroStatText, { transform: [{ scale: pulseAnim }] }]}>
             {isScaled ? formatAmount(recipe.servings * scaleFactor) : recipe.servings} {t.common.servings}
           </Animated.Text>
@@ -505,15 +506,15 @@ export default function RecipeDetailScreen() {
   return (
     <TouchableWithoutFeedback onPress={() => { setEditingIndex(null); Keyboard.dismiss(); }}>
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
         {/* Animated Sticky Header */}
         <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity }]}>
-          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
           <SafeAreaView edges={['top'] as any}>
             <View style={styles.stickyHeaderContent}>
               <TouchableOpacity onPress={goBack} style={styles.backBtnSmall}>
-                <Ionicons name="chevron-back" size={24} color="#fff" />
+                <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
               </TouchableOpacity>
               <Text style={styles.stickyHeaderTitle} numberOfLines={1}>{recipe.title}</Text>
               <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnSmall}>
@@ -526,26 +527,26 @@ export default function RecipeDetailScreen() {
         {/* Initial floating header buttons */}
         <Animated.View style={[styles.headerOverlay, { opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
           <TouchableOpacity onPress={goBack} style={styles.backBtnCircle}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
+            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerRightActions}>
             {isScaled && (
               <TouchableOpacity onPress={resetScale} style={styles.resetBtnCircle}>
-                <Ionicons name="refresh" size={20} color="#f5a623" />
+                <Ionicons name="refresh" size={20} color={COLORS.primary} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={handleShare}
               style={styles.shareBtnCircle}
             >
-              <Ionicons name="share-outline" size={20} color="#38bdf8" />
+              <Ionicons name="share-outline" size={20} color={COLORS.primary} />
             </TouchableOpacity>
             {type === 'personal' && (
               <TouchableOpacity
                 onPress={() => router.push({ pathname: '/recipe/new', params: { editId: id } })}
                 style={styles.editBtnCircle}
               >
-                <Ionicons name="pencil" size={18} color="#a78bfa" />
+                <Ionicons name="pencil" size={18} color={COLORS.purple} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={toggleFavorite} style={styles.favBtnCircle}>
@@ -581,7 +582,7 @@ export default function RecipeDetailScreen() {
                 </LinearGradient>
               </ImageBackground>
             ) : (
-              <LinearGradient colors={['#1e293b', '#0a0a0f']} style={styles.heroBackground}>
+              <LinearGradient colors={['transparent', COLORS.bg]} style={styles.heroBackground}>
                 <Ionicons name="restaurant" size={120} color="rgba(245, 166, 35, 0.03)" style={styles.heroBgIcon} />
                 {heroContent}
               </LinearGradient>
@@ -597,19 +598,19 @@ export default function RecipeDetailScreen() {
                 disabled={addingToCart}
               >
                 {addingToCart ? (
-                  <ActivityIndicator size="small" color="#60a5fa" />
+                  <ActivityIndicator size="small" color={COLORS.primary} />
                 ) : (
-                  <Ionicons name="cart-outline" size={16} color="#60a5fa" />
+                  <Ionicons name="cart-outline" size={16} color={COLORS.primary} />
                 )}
-                <Text style={[styles.actionChipText, { color: '#60a5fa' }]}>{t.recipe.shopping}</Text>
+                <Text style={[styles.actionChipText, { color: COLORS.primary }]}>{t.recipe.shopping}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.actionChip, styles.cookChip]}
                 onPress={() => router.push({ pathname: '/recipe/cook', params: { id, type } })}
               >
-                <Ionicons name="flame-outline" size={16} color="#fff" />
-                <Text style={[styles.actionChipText, { color: '#fff' }]}>{t.recipe.cookNow}</Text>
+                <Ionicons name="flame-outline" size={16} color={COLORS.textPrimary} />
+                <Text style={[styles.actionChipText, { color: COLORS.textPrimary }]}>{t.recipe.cookNow}</Text>
               </TouchableOpacity>
             </View>
 
@@ -635,12 +636,12 @@ export default function RecipeDetailScreen() {
               ]}
             >
               <LinearGradient
-                colors={['#f5a623', '#ea580c']}
+                colors={[COLORS.primary, COLORS.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.scaleBannerGradient}
               >
-                <Ionicons name="resize" size={18} color="#fff" />
+                <Ionicons name="resize" size={18} color={COLORS.textPrimary} />
                 <Text style={styles.scaleBannerText}>{t.recipe.scaled} {formatAmount(scaleFactor)}×</Text>
                 <TouchableOpacity onPress={resetScale} style={styles.resetScaleInner}>
                   <Text style={styles.resetScaleInnerText}>{t.recipe.reset}</Text>
@@ -653,7 +654,7 @@ export default function RecipeDetailScreen() {
               <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
                 <View style={[styles.titleWithIcon, isRTL && styles.rowRTL]}>
                   <View style={styles.titleIconCircle}>
-                    <Ionicons name="list" size={18} color="#f5a623" />
+                    <Ionicons name="list" size={18} color={COLORS.primary} />
                   </View>
                   <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.ingredients}</Text>
                 </View>
@@ -688,7 +689,7 @@ export default function RecipeDetailScreen() {
               <View style={styles.ingredientsList}>
                 {(scaledIngredients.length > 0 ? scaledIngredients : getLocalizedIngredients()).map((ing, index) => (
                   <IngredientRow
-                    key={ing.id}
+                    key={ing.id || `ing-${index}`}
                     ingredient={ing}
                     isHighlighted={editingIndex === index}
                     isEditing={editingIndex === index}
@@ -708,7 +709,7 @@ export default function RecipeDetailScreen() {
                 <View style={[styles.sectionHeaderRow, isRTL && styles.rowRTL]}>
                   <View style={[styles.titleWithIcon, isRTL && styles.rowRTL]}>
                     <View style={styles.titleIconCircle}>
-                      <Ionicons name="restaurant" size={18} color="#f5a623" />
+                      <Ionicons name="restaurant" size={18} color={COLORS.primary} />
                     </View>
                     <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recipe.instructions}</Text>
                   </View>
@@ -731,7 +732,7 @@ export default function RecipeDetailScreen() {
                       ]}
                     >
                       <View style={styles.stepNumberContainer}>
-                        <LinearGradient colors={['#f5a623', '#d97706']} style={styles.stepNumber}>
+                        <LinearGradient colors={[COLORS.primary, COLORS.primaryLight]} style={styles.stepNumber}>
                           <Text style={styles.stepNumberText}>{index + 1}</Text>
                         </LinearGradient>
                         {index < getLocalizedSteps().length - 1 && <View style={styles.stepLine} />}
@@ -752,7 +753,7 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   stickyHeader: {
@@ -771,7 +772,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   stickyHeaderTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: '800',
     flex: 1,
@@ -813,11 +814,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(245, 166, 35, 0.2)',
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(245, 166, 35, 0.3)',
+    borderColor: COLORS.border,
   },
   editBtnCircle: {
     width: 44,
@@ -859,7 +860,7 @@ const styles = StyleSheet.create({
   },
   heroContent: { zIndex: 2 },
   categoryBadge: {
-    backgroundColor: 'rgba(245, 166, 35, 0.2)',
+    backgroundColor: COLORS.primaryTint,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 8,
@@ -867,14 +868,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryText: {
-    color: '#f5a623',
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
   heroTitle: {
-    color: '#fff',
+    color: COLORS.textPrimary,
     fontSize: 38,
     fontWeight: '900',
     marginBottom: 16,
@@ -883,13 +884,13 @@ const styles = StyleSheet.create({
   },
   heroStats: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
   heroStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  heroStatLabel: { color: '#64748b', fontSize: 12, fontWeight: '600' },
-  heroStatText: { color: '#cbd5e1', fontSize: 14, fontWeight: '700' },
+  heroStatLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+  heroStatText: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '700' },
   heroStatDivider: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(245, 166, 35, 0.3)' },
 
   contentCard: {
     marginTop: -30,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: COLORS.bg,
     borderTopLeftRadius: 35,
     borderTopRightRadius: 35,
     paddingTop: 28,
@@ -913,21 +914,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(96,165,250,0.2)',
   },
   cookChip: {
-    backgroundColor: '#f5a623',
-    borderColor: '#f5a623',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
     flex: 1.2,
   },
   actionChipText: { fontSize: 14, fontWeight: '700' },
 
   descSection: { paddingHorizontal: 24, marginBottom: 24 },
-  description: { color: '#94a3b8', fontSize: 16, lineHeight: 26, fontWeight: '500', fontStyle: 'italic' },
+  description: { color: COLORS.textSecondary, fontSize: 16, lineHeight: 26, fontWeight: '500', fontStyle: 'italic' },
 
   scaleBanner: {
     marginHorizontal: 24,
@@ -935,7 +936,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#f5a623',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -947,14 +948,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
   },
-  scaleBannerText: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800' },
+  scaleBannerText: { flex: 1, color: COLORS.textPrimary, fontSize: 16, fontWeight: '800' },
   resetScaleInner: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  resetScaleInnerText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  resetScaleInnerText: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '700' },
 
   section: { paddingHorizontal: 24, marginBottom: 32 },
   sectionHeaderRow: {
@@ -968,12 +969,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    backgroundColor: COLORS.primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sectionTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  hintText: { color: '#475569', fontSize: 12, fontWeight: '500' },
+  sectionTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800' },
+  hintText: { color: COLORS.textFaint, fontSize: 12, fontWeight: '500' },
 
   scalePresetRow: {
     flexDirection: 'row',
@@ -984,29 +985,29 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#16213e',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
   presetBtnActive: {
-    backgroundColor: '#f5a623',
-    borderColor: '#f5a623',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
-  presetBtnText: { color: '#64748b', fontSize: 14, fontWeight: '800' },
-  presetBtnTextActive: { color: '#fff' },
+  presetBtnText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '800' },
+  presetBtnTextActive: { color: COLORS.textPrimary },
 
   ingredientsList: {},
 
-  nutritionSub: { color: '#64748b', fontSize: 13, fontWeight: '500' },
+  nutritionSub: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
   nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   nutritionCard: {
     width: (width - 48 - 12) / 2,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.surfaceDeep,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
   nutritionCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   nutritionIconCircle: {
@@ -1016,18 +1017,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  nutritionLab: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
-  nutritionVal: { color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: 8 },
-  nutritionUnit: { color: '#64748b', fontSize: 12, fontWeight: '500' },
+  nutritionLab: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600' },
+  nutritionVal: { color: COLORS.textPrimary, fontSize: 24, fontWeight: '900', marginBottom: 8 },
+  nutritionUnit: { color: COLORS.textMuted, fontSize: 12, fontWeight: '500' },
   progressContainer: {
     height: 4,
-    backgroundColor: '#1e293b',
+    backgroundColor: COLORS.surfaceDeep,
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBar: { height: 4, borderRadius: 2 },
-  nutritionError: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, backgroundColor: '#111827', borderRadius: 14 },
-  nutritionErrorText: { color: '#64748b', fontSize: 14, flex: 1 },
+  nutritionError: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, backgroundColor: COLORS.surfaceDeep, borderRadius: 14 },
+  nutritionErrorText: { color: COLORS.textMuted, fontSize: 14, flex: 1 },
 
   stepsList: {},
   stepRow: {
@@ -1043,16 +1044,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepNumberText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  stepNumberText: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '900' },
   stepLine: {
     width: 2,
     flex: 1,
-    backgroundColor: 'rgba(245, 166, 35, 0.15)',
+    backgroundColor: COLORS.primaryTint,
     marginTop: 8,
     minHeight: 24,
   },
   stepTextContainer: { flex: 1, paddingTop: 8 },
-  stepText: { color: '#cbd5e1', fontSize: 15, lineHeight: 24, fontWeight: '500' },
+  stepText: { color: COLORS.textPrimary, fontSize: 15, lineHeight: 24, fontWeight: '500' },
   textRTL: { textAlign: 'right', writingDirection: 'rtl' },
   rowRTL: { flexDirection: 'row-reverse' },
 });
