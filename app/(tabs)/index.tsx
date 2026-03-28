@@ -16,8 +16,12 @@ import {
   UIManager,
   Modal,
   ScrollView,
+  Alert,
+  Share,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import * as Linking from 'expo-linking';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { BUILT_IN_RECIPES, CATEGORIES } from '../../constants/recipes';
 import { Recipe } from '../../types';
@@ -28,12 +32,9 @@ import { smartSearchRecipes, fetchUnsplashImage } from '../../lib/gemini';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFavorites, addFavorite, removeFavorite } from '../../lib/storage';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { supabase } from '../../lib/supabase';
-import * as Linking from 'expo-linking';
-import * as Clipboard from 'expo-clipboard';
-import { Share, Alert } from 'react-native';
 import { getCategoryLabel } from '../../lib/i18n';
 import { COLORS } from '../../constants/theme';
+import * as Haptics from 'expo-haptics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -108,12 +109,14 @@ export default function BuiltInRecipesScreen() {
   };
 
   const toggleFavorite = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (favorites.includes(id)) {
       await removeFavorite(id);
       setFavorites(prev => prev.filter(fid => fid !== id));
     } else {
       await addFavorite(id);
       setFavorites(prev => [...prev, id]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -192,6 +195,7 @@ export default function BuiltInRecipesScreen() {
   }, [filtered.length, isLoading]);
 
   const openRecipe = (recipe: Recipe) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
       pathname: '/recipe/[id]',
       params: { id: recipe.id, type: 'builtin' },
@@ -201,6 +205,7 @@ export default function BuiltInRecipesScreen() {
   const getCategoryColor = (cat: string) => CATEGORY_COLORS[cat] || '#94a3b8';
 
   const handleCategoryPress = (category: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedCategory(category);
   };
@@ -283,7 +288,10 @@ export default function BuiltInRecipesScreen() {
       <TouchableOpacity 
         style={styles.pantryBanner} 
         activeOpacity={0.8}
-        onPress={() => router.push('/recipe/pantry')}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push('/recipe/pantry');
+        }}
       >
         <LinearGradient 
           colors={[COLORS.surfaceDeep, COLORS.surface]} 

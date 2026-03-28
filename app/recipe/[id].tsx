@@ -41,6 +41,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCategoryLabel } from '../../lib/i18n';
 import { COLORS } from '../../constants/theme';
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
@@ -131,17 +132,19 @@ export default function RecipeDetailScreen() {
   };
 
   const toggleFavorite = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isFavorited) {
       await removeFavorite(id as string);
       setIsFavorited(false);
     } else {
       await addFavorite(id as string);
       setIsFavorited(true);
-      Vibration.vibrate(10);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
   const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!recipe) return;
 
     if (type === 'builtin') {
@@ -268,7 +271,7 @@ export default function RecipeDetailScreen() {
     const factor = calculateScaleFactor(originalAmount, newAmount);
 
     if (Math.abs(factor - scaleFactor) > 0.01) {
-      Vibration.vibrate(5);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       triggerPulse();
     }
     setScaleFactor(factor);
@@ -282,7 +285,7 @@ export default function RecipeDetailScreen() {
     setScaledIngredients(scaleIngredients(localizedBase, factor));
     setEditingIndex(null);
     Keyboard.dismiss();
-    Vibration.vibrate(5);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     triggerPulse();
   };
 
@@ -317,8 +320,10 @@ export default function RecipeDetailScreen() {
   const handleAddToShoppingList = async () => {
     if (!recipe) return;
     setAddingToCart(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await addIngredientsToShoppingList(scaledIngredients, getLocalizedTitle());
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         t.recipe.addedToShopping,
         `${scaledIngredients.length} ${t.recipe.ingredientsAdded}${scaleFactor !== 1 ? ` (${t.recipe.scaled} ${formatAmount(scaleFactor)}×)` : ''}.`
@@ -339,6 +344,7 @@ export default function RecipeDetailScreen() {
   };
 
   const goBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -348,11 +354,11 @@ export default function RecipeDetailScreen() {
 
   const resetScale = () => {
     if (!recipe) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setScaleFactor(1);
     setScaledIngredients(getLocalizedIngredients());
     setEditingIndex(null);
     Keyboard.dismiss();
-    Vibration.vibrate(10);
   };
 
   const isScaled = Math.abs(scaleFactor - 1) > 0.001;

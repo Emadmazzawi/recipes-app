@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as Haptics from 'expo-haptics';
 import { BUILT_IN_RECIPES } from '../../constants/recipes';
 import { getPersonalRecipes } from '../../lib/storage';
 import { Recipe } from '../../types';
@@ -112,12 +113,14 @@ export default function CookModeScreen() {
   const goNext = () => {
     const steps = getLocalizedSteps();
     if (!recipe || currentStep >= steps.length - 1) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCurrentStep(prev => prev + 1);
     animateTransition();
   };
 
   const goPrev = () => {
     if (currentStep <= 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentStep(prev => prev - 1);
     animateTransition();
   };
@@ -130,6 +133,7 @@ export default function CookModeScreen() {
   };
 
   const startSmartTimer = (secs: number) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setTimers(prev => ({
       ...prev,
       [currentStep]: { seconds: secs, total: secs, active: true }
@@ -137,6 +141,7 @@ export default function CookModeScreen() {
   };
 
   const toggleTimer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimers(prev => {
       const t = prev[currentStep];
       if (!t) return prev;
@@ -145,6 +150,7 @@ export default function CookModeScreen() {
   };
 
   const resetCurrentTimer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTimers(prev => {
       const next = { ...prev };
       delete next[currentStep];
