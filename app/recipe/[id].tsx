@@ -568,9 +568,9 @@ export default function RecipeDetailScreen() {
         >
           {/* Hero Section */}
           <View style={styles.hero}>
-            {recipe.imageUri ? (
+            {(recipe.imageUri || recipe.unsplashImageUrl) ? (
               <ImageBackground
-                source={{ uri: recipe.imageUri }}
+                source={{ uri: recipe.imageUri || recipe.unsplashImageUrl }}
                 style={styles.heroBackground}
                 resizeMode="cover"
               >
