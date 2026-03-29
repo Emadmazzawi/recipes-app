@@ -1,17 +1,53 @@
 import { Ingredient } from '../types';
 import { supabase } from './supabase';
+import { Platform } from 'react-native';
+
+const COPILOT_API_URL = Platform.OS === 'android' 
+  ? 'http://10.0.2.2:4141/v1/chat/completions' 
+  : 'http://localhost:4141/v1/chat/completions';
+const MODEL = 'claude-sonnet-4.6';
+
+async function callCopilotAPI(messages: any[]) {
+  try {
+    const response = await fetch(COPILOT_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Copilot API error: ${response.status} ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Failed to call Copilot API:', error);
+    throw error;
+  }
+}
 
 export async function scanIngredientsFromImage(base64Image: string): Promise<Partial<Ingredient>[]> {
   try {
-    const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action: 'scan_ingredients', payload: { base64Image } }
-    });
+    const promptText = "Extract ingredients from this image of a recipe list. Return ONLY a JSON array of objects with 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed. Output only the JSON array.";
+    
+    const text = await callCopilotAPI([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: promptText },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+        ]
+      }
+    ]);
 
-    if (error) throw new Error(error.message || 'Supabase function failed');
-    if (data?.error) throw new Error(data.error || 'API request failed');
-
-    const text = data.text;
-    if (!text) throw new Error('No content received from Gemini.');
+    if (!text) throw new Error('No content received from AI.');
 
     // Robust JSON array extraction
     let jsonStr = '';
@@ -36,14 +72,18 @@ export async function scanIngredientsFromImage(base64Image: string): Promise<Par
 
 export async function smartSearchRecipes(query: string, recipes: any[]): Promise<Record<string, string>> {
   try {
-    const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action: 'smart_search', payload: { query, recipes } }
-    });
+    const recipeList = recipes.map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      ingredients: r.ingredients.map((i: any) => i.name).join(', '),
+    }));
+    
+    const promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return ONLY a JSON object where keys are recipe IDs and values are a short one-sentence explanation of why it matches. Recipes: ${JSON.stringify(recipeList)}`;
+    
+    const text = await callCopilotAPI([
+      { role: 'user', content: promptText }
+    ]);
 
-    if (error) throw new Error(error.message || 'Supabase function failed');
-    if (data?.error) throw new Error(data.error || 'API request failed');
-
-    const text = data.text;
     if (!text) return {};
 
     // Robust JSON object extraction
@@ -120,24 +160,26 @@ export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
   }
 
   try {
-    // We add a manual timeout promise for the supabase invocation
-    // because it might hang if the edge function or Gemini is unresponsive
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('AI Request timed out')), 25000);
-    });
+    const recipeSchema = `{
+      "title": "string",
+      "description": "string",
+      "servings": number,
+      "prepTime": number,
+      "cookTime": number,
+      "category": "Breakfast|Main|Appetizer|Dessert|Baking|Soup|Salad|Drinks|Other",
+      "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
+      "steps": ["string"]
+    }`;
+    
+    const promptText = pageContent
+      ? `Extract a complete recipe from the following webpage text. Return ONLY a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
+      : `Extract the complete recipe from this URL: ${url}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`;
+    
+    const text = await callCopilotAPI([
+      { role: 'user', content: promptText }
+    ]);
 
-    const aiPromise = supabase.functions.invoke('gemini', {
-      body: { action: 'import_recipe', payload: { recipeUrl: url, pageContent } }
-    });
-
-    const result = await Promise.race([aiPromise, timeoutPromise]) as any;
-    const { data, error } = result;
-
-    if (error) throw new Error(error.message || 'Supabase function failed');
-    if (data?.error) throw new Error(data.error || 'API request failed');
-
-    const text = data.text;
-    if (!text) throw new Error('No content received from Gemini.');
+    if (!text) throw new Error('No content received from AI.');
 
     // Robust JSON object extraction
     let jsonStr = '';
@@ -185,15 +227,26 @@ export async function fetchUnsplashImage(query: string): Promise<string | null> 
 
 export async function generateRecipeFromIngredients(ingredients: string[]): Promise<any> {
   try {
-    const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action: 'generate_pantry', payload: { ingredients } }
-    });
+    const recipeSchema = `{
+      "title": "string",
+      "description": "string",
+      "servings": number,
+      "prepTime": number,
+      "cookTime": number,
+      "category": "Main|Appetizer|Dessert|Baking|Soup|Salad|Breakfast|Drinks|Other",
+      "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
+      "steps": ["string"]
+    }`;
+    
+    const promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
+Create a delicious recipe that uses these ingredients. You may also include very basic household staples (like salt, pepper, cooking oil, water, butter, basic spices).
+Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only valid JSON, no markdown formatting outside of the JSON block.`;
 
-    if (error) throw new Error(error.message || 'Supabase function failed');
-    if (data?.error) throw new Error(data.error || 'API request failed');
+    const text = await callCopilotAPI([
+      { role: 'user', content: promptText }
+    ]);
 
-    const text = data.text;
-    if (!text) throw new Error('No content received from Gemini.');
+    if (!text) throw new Error('No content received from AI.');
 
     // Robust JSON object extraction
     let jsonStr = '';
@@ -215,4 +268,3 @@ export async function generateRecipeFromIngredients(ingredients: string[]): Prom
     throw error;
   }
 }
-
