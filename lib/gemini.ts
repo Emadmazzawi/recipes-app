@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 const COPILOT_API_URL = Platform.OS === 'android' 
   ? 'http://10.0.2.2:4141/v1/chat/completions' 
   : 'http://localhost:4141/v1/chat/completions';
-const MODEL = 'gpt-4o';
+const MODEL = 'gpt-4o-2024-05-13'; // Use the exact model ID from the copilot-api list
 
 async function callCopilotAPI(messages: any[]) {
   try {
