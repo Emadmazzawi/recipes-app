@@ -27,7 +27,15 @@ export default {
     favicon: "./assets/favicon.png"
   },
   plugins: [
-    "expo-router"
+    "expo-router",
+    [
+      "@sentry/react-native/expo",
+      {
+        url: "https://sentry.io/",
+        project: "recipes-app",
+        organization: "your-organization-name"
+      }
+    ]
   ],
   scheme: "recipesapp",
   extra: {
