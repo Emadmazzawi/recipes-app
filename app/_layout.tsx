@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import {
   useFonts,
   Inter_400Regular,
@@ -22,7 +23,12 @@ export {
   ErrorBoundary,
 } from 'expo-router';
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: 'https://2dc9b32efdbebadc41059f1ce08bf94a@o4511132696641536.ingest.us.sentry.io/4511132729278464',
+  debug: false, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
+});
+
+function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
@@ -160,3 +166,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   }
 });
+
+export default Sentry.wrap(RootLayout);
