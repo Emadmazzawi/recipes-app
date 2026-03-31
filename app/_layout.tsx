@@ -18,6 +18,7 @@ import { LanguageProvider } from '../contexts/LanguageContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
+import { PostHogProvider } from 'posthog-react-native';
 
 export {
   ErrorBoundary,
@@ -140,21 +141,25 @@ function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/index" options={{ headerShown: false }} />
-            <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="recipe/shared/[id]" options={{ headerShown: false, presentation: 'modal' }} />
-            <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
-            <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
-            <Stack.Screen name="recipe/pantry" options={{ headerShown: false, presentation: 'modal' }} />
-          </Stack>
-        </LanguageProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'phc_placeholder_key'} options={{
+      host: 'https://us.i.posthog.com', // Change to 'https://eu.i.posthog.com' if your project is in the EU
+    }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider>
+          <LanguageProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="auth/index" options={{ headerShown: false }} />
+              <Stack.Screen name="recipe/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="recipe/shared/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="recipe/new" options={{ headerShown: false }} />
+              <Stack.Screen name="recipe/cook" options={{ headerShown: false }} />
+              <Stack.Screen name="recipe/pantry" options={{ headerShown: false, presentation: 'modal' }} />
+            </Stack>
+          </LanguageProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </PostHogProvider>
   );
 }
 

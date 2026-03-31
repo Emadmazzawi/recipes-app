@@ -28,6 +28,7 @@ export default {
   },
   plugins: [
     "expo-router",
+    "expo-localization",
     [
       "@sentry/react-native/expo",
       {
