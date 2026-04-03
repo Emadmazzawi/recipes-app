@@ -96,7 +96,7 @@ export default function SettingsScreen() {
         {/* Support/Info Section */}
         {renderGroupTitle("SUPPORT & INFO")}
         <View style={styles.groupContainer}>
-          {renderListItem("shield-checkmark-outline", "Privacy Policy", () => {})}
+          {renderListItem("shield-checkmark-outline", "Privacy Policy", () => router.push('/privacy'))}
           <View style={styles.divider} />
           {renderListItem("document-text-outline", "Terms of Service", () => {})}
           <View style={styles.divider} />
