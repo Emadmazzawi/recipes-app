@@ -19,7 +19,10 @@ import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { SettingsModal } from '../../components/SettingsModal';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -77,6 +80,50 @@ export default function LoginScreen() {
       Alert.alert('Reset Email Sent', 'Check your inbox for a password reset link.');
     } catch (error: any) {
       setErrorMessage(error.message);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const redirectUrl = Linking.createURL('/');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        if (Platform.OS === 'web') {
+          window.location.href = data.url;
+        } else {
+          // Open the native browser to complete the flow.
+          // Once completed, the deep link listener in _layout.tsx catches the returned URL.
+          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+          
+          if (result.type === 'success' && result.url) {
+            // Check if the URL has fragments for Supabase to parse
+            const { url } = result;
+            const hashMatch = url.match(/access_token=([^&]+)/);
+            const refreshMatch = url.match(/refresh_token=([^&]+)/);
+            if (hashMatch && hashMatch[1] && refreshMatch && refreshMatch[1]) {
+              await supabase.auth.setSession({
+                access_token: hashMatch[1],
+                refresh_token: refreshMatch[1],
+              });
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || 'Google Auth failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,9 +241,9 @@ export default function LoginScreen() {
                 <View style={styles.divider} />
               </View>
 
-              <TouchableOpacity style={styles.socialBtn}>
-                <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={styles.socialBtnText}>Continue with Google</Text>
+              <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleAuth} disabled={loading}>
+                {loading ? <ActivityIndicator color="#374151" /> : <Ionicons name="logo-google" size={20} color="#DB4437" />}
+                {!loading && <Text style={styles.socialBtnText}>Continue with Google</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.guestBtn} onPress={handleGuest}>

@@ -29,7 +29,8 @@ export default {
   plugins: [
     "expo-router",
     "expo-localization",
-    "expo-secure-store"
+    "expo-secure-store",
+    "expo-web-browser"
   ],
   scheme: "recipesapp",
   extra: {
