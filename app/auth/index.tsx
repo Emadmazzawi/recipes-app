@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import * as Linking from 'expo-linking';
+import { SettingsModal } from '../../components/SettingsModal';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -27,6 +28,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
   const router = useRouter();
 
   const handleAuth = async () => {
@@ -94,6 +96,14 @@ export default function LoginScreen() {
         >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             
+            {/* Settings Button */}
+            <TouchableOpacity 
+              onPress={() => setShowSettings(true)} 
+              style={styles.settingsBtn}
+            >
+              <Ionicons name="settings-outline" size={24} color="#6b7280" />
+            </TouchableOpacity>
+
             {/* Logo */}
             <View style={styles.logoContainer}>
               <View style={styles.logoPlaceholder}>
@@ -197,6 +207,11 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </View>
   );
 }
@@ -212,6 +227,8 @@ const styles = StyleSheet.create({
 
   scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   
+  settingsBtn: { position: 'absolute', top: 20, right: 20, zIndex: 10, padding: 8, backgroundColor: '#ffffff', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+
   /* Logo */
   logoContainer: { alignItems: 'center', marginBottom: 32 },
   logoPlaceholder: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center', marginBottom: 16, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
