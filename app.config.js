@@ -1,6 +1,6 @@
 // Expo configuration
 export default {
-  name: "Recipe Scaler",
+  name: "Smart Recipes",
   slug: "recipes-app",
   version: "1.0.0",
   orientation: "portrait",
@@ -29,15 +29,7 @@ export default {
   plugins: [
     "expo-router",
     "expo-localization",
-    "expo-secure-store",
-    [
-      "@sentry/react-native/expo",
-      {
-        url: "https://sentry.io/",
-        project: "recipes-app",
-        organization: "your-organization-name"
-      }
-    ]
+    "expo-secure-store"
   ],
   scheme: "recipesapp",
   extra: {
