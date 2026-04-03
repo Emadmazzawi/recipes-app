@@ -5,532 +5,250 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
   StatusBar,
-  ActivityIndicator,
-  Modal,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../lib/supabase';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { supabase } from '../../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
-import { useTheme, useStyles } from '../../contexts/ThemeContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { SettingsModal } from '../../components/SettingsModal';
 import * as Linking from 'expo-linking';
 
-export default function AuthScreen() {
-  const { colors: COLORS, isDark } = useTheme();
-  const styles = useStyles(getStyles);
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
-  const { t, isRTL } = useLanguage();
 
-  async function handleGuest() {
-    await AsyncStorage.setItem('is_guest', 'true');
-    router.replace('/(tabs)');
-  }
-
-  async function handleAuth() {
+  const handleAuth = async () => {
+    setErrorMessage('');
     if (!email || !password) {
-      Alert.alert(t.auth.errorTitle, t.auth.errorBothFields);
+      setErrorMessage('Please enter both email and password.');
       return;
     }
+    
     setLoading(true);
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        Alert.alert(t.auth.successTitle, t.auth.successSignUp);
+        Alert.alert('Success!', 'Your account has been created. You can now log in.');
+        setIsSignUp(false); // Switch to login view
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Proceed to main app
         router.replace('/(tabs)');
       }
     } catch (error: any) {
-      if (error.message.includes('Invalid login credentials')) {
-        Alert.alert(t.auth.errorTitle, t.auth.invalidCredentials);
-      } else {
-        Alert.alert(t.auth.errorTitle, error.message);
-      }
+      setErrorMessage(error.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  function handleOpenForgotPassword() {
-    setForgotEmail(email); // Pre-fill with whatever they typed
-    setShowForgotModal(true);
-  }
+  const handleGuest = async () => {
+    await AsyncStorage.setItem('is_guest', 'true');
+    router.replace('/(tabs)');
+  };
 
-  async function submitForgotPassword() {
-    if (!forgotEmail) {
-      Alert.alert(t.auth.errorTitle, t.auth.emailRequiredForReset);
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setErrorMessage('Please enter your email address in the field above to reset your password.');
       return;
     }
-    setIsResetting(true);
     try {
-      // Create a deep link specifically telling Supabase to return to the password update screen
       const redirectUrl = Linking.createURL('auth/update-password');
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
       if (error) throw error;
-      Alert.alert(t.auth.successTitle, t.auth.resetEmailSent);
-      setShowForgotModal(false);
+      Alert.alert('Reset Email Sent', 'Check your inbox for a password reset link.');
     } catch (error: any) {
-      Alert.alert(t.auth.errorTitle, error.message);
-    } finally {
-      setIsResetting(false);
+      setErrorMessage(error.message);
     }
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Decorative Background Orbs */}
+      <View style={styles.bgOrb1} />
+      <View style={styles.bgOrb2} />
+      <View style={styles.bgOrb3} />
 
-      {/* Warm glow orbs */}
-      <View style={styles.orb1} />
-      <View style={styles.orb2} />
-      <View style={styles.orb3} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          {/* Logo + title */}
-          <View style={styles.hero}>
-            <TouchableOpacity
-              onPress={() => setShowSettings(true)}
-              style={styles.settingsBtn}
-            >
-              <Ionicons name="settings-outline" size={24} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-
-            <View style={styles.logoWrap}>
-              <LinearGradient
-                colors={[COLORS.primaryLight, COLORS.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoGradient}
-              >
-                <Ionicons name="restaurant" size={36} color="#fff" />
-              </LinearGradient>
-              <View style={styles.logoGlow} />
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoPlaceholder}>
+                <Ionicons name="restaurant" size={42} color="#fff" />
+              </View>
+              <Text style={styles.appName}>Smart Recipes</Text>
+              <Text style={styles.tagline}>{isSignUp ? 'Create your account' : 'Welcome back'}</Text>
             </View>
-            <Text style={[styles.appName, isRTL && styles.textRTL]}>{t.auth.appName}</Text>
-            <Text style={[styles.tagline, isRTL && styles.textRTL]}>
-              {isSignUp ? t.auth.taglineSignUp : t.auth.taglineSignIn}
-            </Text>
-          </View>
 
-          {/* Frosted glass form */}
-          <BlurView intensity={50} tint="light" style={styles.glassForm}>
-            <View style={styles.formInner}>
-              <Text style={[styles.formTitle, isRTL && styles.textRTL]}>
-                {isSignUp ? t.auth.formTitleSignUp : t.auth.formTitleSignIn}
-              </Text>
+            {/* Error Message Area */}
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
 
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.auth.emailLabel}</Text>
-                <View style={[styles.inputRow, isRTL && styles.inputRowRTL]}>
-                  <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
+            {/* Glassmorphism Form Container */}
+            <BlurView intensity={80} tint="light" style={styles.formContainer}>
+              
+              {/* Input Fields */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="mail-outline" size={20} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, isRTL && styles.textRTL]}
-                    placeholder={t.auth.emailPlaceholder}
-                    placeholderTextColor={COLORS.textFaint}
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    textAlign={isRTL ? 'right' : 'left'}
                   />
                 </View>
               </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.auth.passwordLabel}</Text>
-                <View style={[styles.inputRow, isRTL && styles.inputRowRTL]}>
-                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, isRTL && styles.textRTL]}
-                    placeholder="••••••••"
-                    placeholderTextColor={COLORS.textFaint}
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#9ca3af"
+                    secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    textAlign={isRTL ? 'right' : 'left'}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeBtn}>
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={18}
-                      color={COLORS.textMuted}
-                    />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#6b7280" />
                   </TouchableOpacity>
                 </View>
                 {!isSignUp && (
-                  <TouchableOpacity onPress={handleOpenForgotPassword} style={[styles.forgotPasswordWrap, isRTL && { alignItems: 'flex-start' }]}>
-                    <Text style={[styles.forgotPasswordText, isRTL && styles.textRTL]}>{t.auth.forgotPassword}</Text>
+                  <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              <TouchableOpacity
+              {/* Primary Login/Signup Button */}
+              <TouchableOpacity 
+                style={styles.primaryBtn} 
                 onPress={handleAuth}
                 disabled={loading}
-                activeOpacity={0.85}
-                style={styles.ctaWrap}
               >
-                <LinearGradient
-                  colors={[COLORS.primaryLight, COLORS.primary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.ctaGradient}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.ctaText}>
-                      {isSignUp ? t.auth.signUp : t.auth.signIn}
-                    </Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setIsSignUp(!isSignUp)}
-                activeOpacity={0.7}
-                style={styles.switchRow}
-              >
-                <Text style={[styles.switchText, isRTL && styles.textRTL]}>
-                  {isSignUp ? t.auth.switchToSignIn + '  ' : t.auth.switchToSignUp + '  '}
-                  <Text style={styles.switchHighlight}>
-                    {isSignUp ? t.auth.signIn : t.auth.signUp}
-                  </Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </BlurView>
-
-          <TouchableOpacity
-            style={[styles.guestRow, isRTL && styles.guestRowRTL]}
-            onPress={handleGuest}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="person-outline" size={14} color={COLORS.textMuted} style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
-            <Text style={[styles.guestText, isRTL && styles.textRTL]}>{t.auth.continueAsGuest}</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      <Modal
-        visible={showForgotModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowForgotModal(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <View style={[styles.modalHeader, isRTL && { flexDirection: 'row-reverse' }]}>
-              <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.auth.forgotPasswordTitle}</Text>
-              <TouchableOpacity onPress={() => setShowForgotModal(false)} style={styles.modalCloseBtn}>
-                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalSub, isRTL && styles.textRTL]}>{t.auth.forgotPasswordSub}</Text>
-
-            <View style={[styles.inputRow, isRTL && styles.inputRowRTL, { marginBottom: 24 }]}>
-              <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={isRTL ? styles.inputIconRTL : styles.inputIcon} />
-              <TextInput
-                style={[styles.input, isRTL && styles.textRTL]}
-                placeholder={t.auth.emailPlaceholder}
-                placeholderTextColor={COLORS.textFaint}
-                value={forgotEmail}
-                onChangeText={setForgotEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                textAlign={isRTL ? 'right' : 'left'}
-              />
-            </View>
-
-            <TouchableOpacity
-              onPress={submitForgotPassword}
-              disabled={isResetting}
-              activeOpacity={0.85}
-              style={styles.modalCtaWrap}
-            >
-              <LinearGradient
-                colors={[COLORS.primaryLight, COLORS.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.ctaGradient}
-              >
-                {isResetting ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.ctaText}>{t.auth.sendLink}</Text>
+                  <Text style={styles.primaryBtnText}>{isSignUp ? 'Sign Up' : 'Log In'}</Text>
                 )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+              </TouchableOpacity>
 
-      <SettingsModal
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
+              {/* Toggle Sign Up / Log In Link */}
+              <View style={styles.signUpRow}>
+                <Text style={styles.newUserText}>{isSignUp ? 'Already have an account? ' : 'New user? '}</Text>
+                <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+                  <Text style={styles.signUpText}>{isSignUp ? 'Log In' : 'Sign Up'}</Text>
+                </TouchableOpacity>
+              </View>
+
+            </BlurView>
+
+            {/* Social Auth & Guest */}
+            <View style={styles.bottomSection}>
+              <View style={styles.dividerRow}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <TouchableOpacity style={styles.socialBtn}>
+                <Ionicons name="logo-google" size={20} color="#DB4437" />
+                <Text style={styles.socialBtnText}>Continue with Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.guestBtn} onPress={handleGuest}>
+                <Text style={styles.guestBtnText}>Continue as Guest</Text>
+              </TouchableOpacity>
+            </View>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
 
-const getStyles = (COLORS: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  orb1: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: COLORS.primaryLight,
-    opacity: 0.15,
-    top: -100,
-    left: -80,
-    transform: [{ scaleX: 1.3 }],
-  },
-  orb2: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: COLORS.primary,
-    opacity: 0.1,
-    top: 60,
-    right: -60,
-  },
-  orb3: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#ff8c42',
-    opacity: 0.12,
-    bottom: 120,
-    left: 20,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-    paddingVertical: 60,
-  },
-  settingsBtn: {
-    position: 'absolute',
-    top: -20,
-    right: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    zIndex: 10,
-  },
-  hero: { alignItems: 'center', marginBottom: 36, position: 'relative' },
-  logoWrap: { position: 'relative', marginBottom: 20 },
-  logoGradient: {
-    width: 76,
-    height: 76,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary,
-    opacity: 0.3,
-    top: 8,
-    left: 0,
-    zIndex: -1,
-    transform: [{ scaleX: 1.1 }, { scaleY: 1.4 }],
-  },
-  appName: {
-    color: COLORS.textPrimary,
-    fontSize: 34,
-    fontFamily: 'Inter_900Black',
-    letterSpacing: -1.2,
-    marginBottom: 8,
-  },
-  tagline: {
-    color: COLORS.textMuted,
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  textRTL: {
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  glassForm: {
-    borderRadius: 28,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 20,
-  },
-  formInner: { padding: 24 },
-  formTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 22,
-    fontFamily: 'Inter_800ExtraBold',
-    marginBottom: 24,
-    letterSpacing: -0.5,
-  },
-  fieldGroup: { marginBottom: 18 },
-  fieldLabel: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    marginLeft: 2,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryTintDark,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 14,
-    height: 52,
-  },
-  inputRowRTL: { flexDirection: 'row-reverse' },
+const styles = StyleSheet.create({
+  mainContainer: { flex: 1, backgroundColor: '#f9fafb' },
+  safeArea: { flex: 1 },
+  
+  /* Decorative Background Orbs */
+  bgOrb1: { position: 'absolute', width: 350, height: 350, borderRadius: 175, backgroundColor: '#3b82f6', opacity: 0.12, top: -100, left: -100 },
+  bgOrb2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: '#8b5cf6', opacity: 0.08, bottom: 50, right: -80 },
+  bgOrb3: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: '#60a5fa', opacity: 0.1, top: 250, right: 20 },
+
+  scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
+  
+  /* Logo */
+  logoContainer: { alignItems: 'center', marginBottom: 32 },
+  logoPlaceholder: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center', marginBottom: 16, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
+  appName: { fontSize: 28, fontWeight: '900', color: '#1f2937', letterSpacing: -0.5 },
+  tagline: { fontSize: 15, color: '#6b7280', marginTop: 4 },
+
+  errorContainer: { backgroundColor: '#fee2e2', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#fca5a5' },
+  errorText: { color: '#ef4444', textAlign: 'center', fontSize: 14, fontWeight: '500' },
+
+  /* Form Container */
+  formContainer: { borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.4)', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 5 },
+  
+  formGroup: { marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '700', color: '#4b5563', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', paddingHorizontal: 14, height: 54 },
   inputIcon: { marginRight: 10 },
-  inputIconRTL: { marginLeft: 10 },
-  input: {
-    flex: 1,
-    color: COLORS.textPrimary,
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-  },
-  eyeBtn: { padding: 6 },
-  forgotPasswordWrap: {
-    alignItems: 'flex-end',
-    marginTop: 8,
-  },
-  forgotPasswordText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  ctaWrap: { borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
-  ctaGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Inter_800ExtraBold',
-    letterSpacing: 0.3,
-  },
-  switchRow: { alignItems: 'center', paddingVertical: 4 },
-  switchText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-  },
-  switchHighlight: {
-    color: COLORS.primary,
-    fontFamily: 'Inter_700Bold',
-  },
-  guestRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-  },
-  guestRowRTL: { flexDirection: 'row-reverse' },
-  guestText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 20,
-    fontFamily: 'Inter_800ExtraBold',
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
-  modalSub: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  modalCtaWrap: { 
-    borderRadius: 16, 
-    overflow: 'hidden', 
-  },
+  input: { flex: 1, fontSize: 16, color: '#1f2937' },
+  eyeBtn: { padding: 4 },
+  forgotPassword: { alignSelf: 'flex-end', marginTop: 10 },
+  forgotPasswordText: { color: '#3b82f6', fontSize: 14, fontWeight: '600' },
+  
+  primaryBtn: { backgroundColor: '#3b82f6', height: 54, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 20, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
+  
+  signUpRow: { flexDirection: 'row', justifyContent: 'center' },
+  newUserText: { color: '#6b7280', fontSize: 14, fontWeight: '500' },
+  signUpText: { color: '#3b82f6', fontSize: 14, fontWeight: 'bold' },
+
+  /* Bottom Section */
+  bottomSection: { marginTop: 30 },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  divider: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
+  dividerText: { marginHorizontal: 12, color: '#9ca3af', fontSize: 12, fontWeight: 'bold' },
+  
+  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', height: 54, borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 12 },
+  socialBtnText: { marginLeft: 12, fontSize: 15, fontWeight: '600', color: '#374151' },
+  
+  guestBtn: { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
+  guestBtnText: { color: '#6b7280', fontSize: 15, fontWeight: '600' },
 });

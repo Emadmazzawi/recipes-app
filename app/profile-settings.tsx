@@ -1,276 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Switch,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme, useStyles } from '../contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
-export default function ProfileSettingsScreen() {
-  const { colors: COLORS, isDark } = useTheme();
-  const styles = useStyles(getStyles);
-  const { t, isRTL } = useLanguage();
+export default function SettingsScreen() {
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [email, setEmail] = useState('');
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        Alert.alert(t.common?.error || 'Not logged in', t.profile?.notLoggedIn || 'You must be logged in to view profile settings.');
-        router.back();
-        return;
-      }
-
-      setEmail(session.user.email || '');
-      setFullName(session.user.user_metadata?.full_name || '');
-      setAvatarUrl(session.user.user_metadata?.avatar_url || '');
-    } catch (error: any) {
-      console.error('Error loading profile:', error);
-      Alert.alert('Error', 'Could not load profile data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-          avatar_url: avatarUrl,
-        }
-      });
-
-      if (error) throw error;
-      Alert.alert(t.auth?.successTitle || 'Success', t.profile?.success || 'Profile updated successfully.');
-      router.back();
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      Alert.alert(t.common?.error || 'Error', error.message || 'Could not update profile.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    Alert.alert(t.profile?.logout || 'Log Out', t.profile?.logoutConfirm || 'Are you sure you want to log out?', [
-      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-      {
-        text: t.profile?.logout || 'Log Out',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut();
-          await AsyncStorage.setItem('is_guest', 'true');
-          router.replace('/auth');
-        },
-      },
+  const handleLogout = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: () => router.replace('/auth') }
     ]);
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+  const handleDeleteAccount = () => {
+    Alert.alert("Delete Account", "This action is permanent and cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => console.log('Account deleted') }
+    ]);
+  };
+
+  const renderGroupTitle = (title: string) => (
+    <Text style={styles.groupTitle}>{title}</Text>
+  );
+
+  const renderListItem = (icon: any, title: string, onPress?: () => void, rightElement?: React.ReactNode, isDestructive = false) => (
+    <TouchableOpacity 
+      style={styles.listItem} 
+      onPress={onPress} 
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={styles.listItemLeft}>
+        <View style={[styles.iconContainer, isDestructive && { backgroundColor: '#fee2e2' }]}>
+          <Ionicons name={icon} size={20} color={isDestructive ? '#ef4444' : '#4b5563'} />
+        </View>
+        <Text style={[styles.listItemTitle, isDestructive && { color: '#ef4444' }]}>{title}</Text>
       </View>
-    );
-  }
+      <View style={styles.listItemRight}>
+        {rightElement ? rightElement : <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color={COLORS.textPrimary} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.profile?.title || 'Account Settings'}</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <Text style={styles.saveBtnText}>{t.profile?.save || 'Save'}</Text>
-          )}
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
       </View>
+      
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Account Section */}
+        {renderGroupTitle("ACCOUNT")}
+        <View style={styles.groupContainer}>
+          {renderListItem("person-outline", "Edit Profile", () => {})}
+          <View style={styles.divider} />
+          {renderListItem("lock-closed-outline", "Change Password", () => {})}
+        </View>
 
-      <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitials}>
-                {fullName ? fullName.charAt(0).toUpperCase() : '?'}
-              </Text>
-            </View>
+        {/* Preferences Section */}
+        {renderGroupTitle("PREFERENCES")}
+        <View style={styles.groupContainer}>
+          {renderListItem("notifications-outline", "Push Notifications", undefined, 
+            <Switch 
+              value={pushEnabled} 
+              onValueChange={setPushEnabled} 
+              trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
+            />
+          )}
+          <View style={styles.divider} />
+          {renderListItem("moon-outline", "Dark Mode", undefined, 
+            <Switch 
+              value={darkModeEnabled} 
+              onValueChange={setDarkModeEnabled} 
+              trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
+            />
           )}
         </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.emailLabel || 'Email Address'}</Text>
-          <TextInput
-            style={[styles.input, { color: COLORS.textMuted }, isRTL && styles.textRTL]}
-            value={email}
-            editable={false}
-            selectTextOnFocus={false}
-          />
-          <Text style={[styles.helperText, isRTL && styles.textRTL]}>{t.profile?.emailHelper || 'Email cannot be changed here.'}</Text>
+        {/* Support/Info Section */}
+        {renderGroupTitle("SUPPORT & INFO")}
+        <View style={styles.groupContainer}>
+          {renderListItem("shield-checkmark-outline", "Privacy Policy", () => {})}
+          <View style={styles.divider} />
+          {renderListItem("document-text-outline", "Terms of Service", () => {})}
+          <View style={styles.divider} />
+          {renderListItem("information-circle-outline", "App Version", undefined, <Text style={styles.versionText}>v1.0.0</Text>)}
         </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.nameLabel || 'Full Name'}</Text>
-          <TextInput
-            style={[styles.input, isRTL && styles.textRTL]}
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder={t.profile?.namePlaceholder || 'Enter your name'}
-            placeholderTextColor={COLORS.textMuted}
-          />
+        {/* Danger Zone */}
+        {renderGroupTitle("DANGER ZONE")}
+        <View style={styles.groupContainer}>
+          {renderListItem("log-out-outline", "Log Out", handleLogout, undefined, true)}
+          <View style={styles.divider} />
+          {renderListItem("trash-outline", "Delete Account", handleDeleteAccount, undefined, true)}
         </View>
 
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, isRTL && styles.textRTL]}>{t.profile?.avatarLabel || 'Avatar URL'}</Text>
-          <TextInput
-            style={[styles.input, isRTL && styles.textRTL]}
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            placeholder={t.profile?.avatarPlaceholder || 'https://example.com/avatar.png'}
-            placeholderTextColor={COLORS.textMuted}
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-        </View>
-
-        <TouchableOpacity style={[styles.logoutBtn, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-          <Text style={styles.logoutBtnText}>{t.profile?.logout || 'Log Out'}</Text>
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (COLORS: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  textRTL: {
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderSubtle,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter_700Bold',
-    color: COLORS.textPrimary,
-  },
-  saveBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.primaryTintDark,
-    borderRadius: 8,
-  },
-  saveBtnText: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    color: COLORS.primary,
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-  },
-  avatarPlaceholder: {
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitials: {
-    fontSize: 40,
-    fontFamily: 'Inter_700Bold',
-    color: COLORS.primary,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: 'Inter_400Regular',
-  },
-  helperText: {
-    fontSize: 12,
-    color: COLORS.textFaint,
-    marginTop: 6,
-    fontFamily: 'Inter_400Regular',
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.borderSubtle,
-    marginTop: 20,
-    gap: 8,
-  },
-  logoutBtnText: {
-    color: COLORS.error,
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-  },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f3f4f6' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb', backgroundColor: '#fff' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1f2937' },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  groupTitle: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginTop: 20, marginBottom: 8, marginLeft: 12, letterSpacing: 0.5 },
+  groupContainer: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16 },
+  listItemLeft: { flexDirection: 'row', alignItems: 'center' },
+  iconContainer: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  listItemTitle: { fontSize: 16, color: '#1f2937', fontWeight: '500' },
+  listItemRight: { flexDirection: 'row', alignItems: 'center' },
+  divider: { height: 1, backgroundColor: '#e5e7eb', marginLeft: 60 },
+  versionText: { fontSize: 15, color: '#9ca3af', fontWeight: '500' },
 });
