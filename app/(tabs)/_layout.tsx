@@ -50,8 +50,8 @@ export default function TabsLayout() {
           shadowRadius: 20,
         },
         tabBarBackground: () => <FloatingTabBarBackground />,
-        tabBarActiveTintColor: '#e8411a',
-        tabBarInactiveTintColor: '#c9a090',
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'Inter_800ExtraBold',
@@ -107,7 +107,7 @@ const getStyles = (COLORS: any) => StyleSheet.create({
   blurInner: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(232, 114, 42, 0.15)',
+    borderColor: COLORS.border,
     overflow: 'hidden',
   },
 });
