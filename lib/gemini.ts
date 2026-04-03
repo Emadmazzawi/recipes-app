@@ -16,7 +16,14 @@ async function callCopilotAPI(messages: any[]) {
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: messages,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a precise data extraction API. You MUST return exclusively valid JSON. Do not include any markdown wrappers (like ```json), explanations, conversational text, or prefixes. If the user asks for an array, return only the array. If the user asks for an object, return only the object.' 
+          },
+          ...messages
+        ],
+        temperature: 0.1,
       }),
     });
 

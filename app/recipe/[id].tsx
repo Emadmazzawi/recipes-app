@@ -155,8 +155,21 @@ export default function RecipeDetailScreen() {
         const shareMessage = `${t.explore?.greeting || 'Check out this recipe'} ${recipe?.title}: ${redirectUrl}`;
 
         if (Platform.OS === 'web') {
-          await Clipboard.setStringAsync(shareMessage);
-          Alert.alert('Link Copied!', 'The recipe link has been copied to your clipboard.');
+          if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+              await navigator.share({
+                title: recipe.title,
+                text: shareMessage,
+                url: redirectUrl,
+              });
+            } catch (err) {
+              await Clipboard.setStringAsync(shareMessage);
+              window.alert('The recipe link has been copied to your clipboard.');
+            }
+          } else {
+            await Clipboard.setStringAsync(shareMessage);
+            window.alert('The recipe link has been copied to your clipboard.');
+          }
         } else {
           await Share.share({
             message: shareMessage,
@@ -212,8 +225,21 @@ export default function RecipeDetailScreen() {
       const shareMessage = `${t.explore?.greeting || 'Check out this recipe'} ${recipe?.title}: ${redirectUrl}\n\nOr paste this code in the Import box: ${recipe?.id}`;
 
       if (Platform.OS === 'web') {
-        await Clipboard.setStringAsync(shareMessage);
-        Alert.alert('Link Copied!', 'The recipe share link has been copied to your clipboard.');
+        if (typeof navigator !== 'undefined' && navigator.share) {
+          try {
+            await navigator.share({
+              title: recipe.title,
+              text: shareMessage,
+              url: redirectUrl,
+            });
+          } catch (err) {
+            await Clipboard.setStringAsync(shareMessage);
+            window.alert('The recipe share link has been copied to your clipboard.');
+          }
+        } else {
+          await Clipboard.setStringAsync(shareMessage);
+          window.alert('The recipe share link has been copied to your clipboard.');
+        }
       } else {
         await Share.share({
           message: shareMessage,
