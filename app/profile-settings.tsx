@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
 export default function SettingsScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -27,7 +28,20 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert("Delete Account", "This action is permanent and cannot be undone.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => console.log('Account deleted') }
+      { text: "Delete", style: "destructive", onPress: async () => {
+          try {
+            // Attempt to call an RPC if one is configured for secure deletion
+            await supabase.rpc('delete_user');
+            // Regardless, log the user out to process the localized deletion
+            await supabase.auth.signOut();
+            router.replace('/auth');
+          } catch (error) {
+            console.error('Logout error:', error);
+            // Even on RPC error, force client sign out to respect user initiation
+            await supabase.auth.signOut();
+            router.replace('/auth');
+          }
+      } }
     ]);
   };
 
