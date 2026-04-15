@@ -109,6 +109,7 @@ export default function NewRecipeScreen() {
     }
 
     if (data.ingredients && Array.isArray(data.ingredients)) {
+      console.log(`[populateFromData] Processing ${data.ingredients.length} ingredients`);
       setIngredients(data.ingredients.map((ing: any) => ({
         id: generateId(),
         name: ing.name || t.create.unknownIngredient,
@@ -117,6 +118,7 @@ export default function NewRecipeScreen() {
       })));
     }
     if (data.steps && Array.isArray(data.steps)) {
+      console.log(`[populateFromData] Processing ${data.steps.length} steps`);
       setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
     }
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -338,11 +340,17 @@ export default function NewRecipeScreen() {
     }
     setShowUrlModal(false);
     setImporting(true);
+    console.log(`[handleImportUrl] Starting import for: ${tempUrl}`);
     try {
       const data = await handleSharedIdOrUrl(tempUrl);
-      if (data) populateFromData(data);
+      console.log(`[handleImportUrl] Data received:`, data ? data.title : 'null');
+      if (data) {
+        populateFromData(data);
+      } else {
+        throw new Error("No data returned from service");
+      }
     } catch (err: any) {
-      console.error("Manual import failed", err);
+      console.error("[handleImportUrl] Failed", err);
       Alert.alert(t.create.importFailed, err.message || t.create.importFailedMsg);
     } finally {
       setImporting(false);

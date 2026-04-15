@@ -100,8 +100,8 @@ serve(async (req) => {
       }`;
       
       promptText = pageContent
-        ? `Extract a complete recipe from the following webpage text. Return a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
-        : `Navigate to this URL (if you can) or use your internal knowledge to extract the complete recipe from this URL: ${recipeUrl}. Return a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default.`;
+        ? `Extract a complete recipe from the following webpage text. Return ONLY a valid JSON object matching this schema: ${recipeSchema}. Do not include any explanations or conversational text. Webpage content:\n${pageContent}`
+        : `Return ONLY a valid JSON object representing a recipe for this URL: ${recipeUrl}. Matching this schema: ${recipeSchema}. If you don't know the exact recipe, provide a sensible default based on the title in the URL. Do not include any text outside the JSON.`;
       
       bodyData.contents[0].parts = [{ text: promptText }];
     } else if (action === 'generate_pantry') {
@@ -118,8 +118,8 @@ serve(async (req) => {
       }`;
       
       promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
-Create a delicious recipe that uses these ingredients. You may also include very basic household staples (like salt, pepper, cooking oil, water, butter, basic spices).
-Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only valid JSON, no markdown formatting outside of the JSON block.`;
+Create a delicious recipe that uses these ingredients. 
+Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other text.`;
       
       bodyData.contents[0].parts = [{ text: promptText }];
     } else {
