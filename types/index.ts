@@ -28,6 +28,7 @@ export interface Recipe {
   instructions_ar?: string[];
   unsplashImageUrl?: string;
   is_public?: boolean;
+  userId?: string;
 }
 
 export interface ShoppingItem {

@@ -112,7 +112,7 @@ export default function SettingsScreen() {
         <View style={styles.groupContainer}>
           {renderListItem("shield-checkmark-outline", "Privacy Policy", () => router.push('/privacy'))}
           <View style={styles.divider} />
-          {renderListItem("document-text-outline", "Terms of Service", () => {})}
+          {renderListItem("document-text-outline", "Terms of Service", () => router.push('/terms'))}
           <View style={styles.divider} />
           {renderListItem("information-circle-outline", "App Version", undefined, <Text style={styles.versionText}>v1.0.0</Text>)}
         </View>

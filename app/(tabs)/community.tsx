@@ -8,7 +8,10 @@ import {
   Animated,
   RefreshControl,
   TouchableOpacity,
+  Alert,
+  Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getPublicRecipes, getFavorites, addFavorite, removeFavorite, savePersonalRecipe } from '../../lib/storage';
@@ -29,6 +32,7 @@ export default function CommunityFeedScreen() {
   const { t, isRTL } = useLanguage();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -36,19 +40,39 @@ export default function CommunityFeedScreen() {
   
   const emptyFade = useRef(new Animated.Value(0)).current;
 
+  const loadBlockedUsers = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('blocked_user_ids');
+      if (stored) {
+        setBlockedUsers(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Error loading blocked users:', e);
+    }
+  };
+
   const loadData = async (refresh = false) => {
     if (!refresh) setIsLoading(true);
     else setIsRefreshing(true);
 
     try {
+      await loadBlockedUsers();
       const [publicData, favs] = await Promise.all([
         getPublicRecipes(),
         getFavorites()
       ]);
-      setRecipes(publicData || []);
+
+      // Get current list of blocked users to ensure fresh filtering
+      const storedBlocked = await AsyncStorage.getItem('blocked_user_ids');
+      const currentBlocked: string[] = storedBlocked ? JSON.parse(storedBlocked) : [];
+
+      // Filter out recipes from blocked users
+      const filteredRecipes = (publicData || []).filter(r => !r.userId || !currentBlocked.includes(r.userId));
+      
+      setRecipes(filteredRecipes);
       setFavorites(favs);
 
-      if (!publicData || publicData.length === 0) {
+      if (!filteredRecipes || filteredRecipes.length === 0) {
         Animated.timing(emptyFade, {
           toValue: 1,
           duration: 400,
@@ -88,6 +112,47 @@ export default function CommunityFeedScreen() {
     }
   };
 
+  const handleReport = (recipe: Recipe) => {
+    const subject = `Report Objectionable Content: ${recipe.title}`;
+    const body = `Reporting recipe ID: ${recipe.id}\nUser ID: ${recipe.userId}\n\nReason for reporting: `;
+    const url = `mailto:support@smartrecipes.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    Alert.alert(
+      "Report Content",
+      "Would you like to report this recipe for objectionable content?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Report", onPress: () => Linking.openURL(url) }
+      ]
+    );
+  };
+
+  const handleBlockUser = (userId: string) => {
+    Alert.alert(
+      "Block User",
+      "Are you sure you want to block this user? You will no longer see their recipes in your feed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Block", style: "destructive", onPress: async () => {
+          try {
+            const stored = await AsyncStorage.getItem('blocked_user_ids');
+            const current: string[] = stored ? JSON.parse(stored) : [];
+            if (!current.includes(userId)) {
+              const updated = [...current, userId];
+              await AsyncStorage.setItem('blocked_user_ids', JSON.stringify(updated));
+              setBlockedUsers(updated);
+              // Immediately filter current view
+              setRecipes(prev => prev.filter(r => r.userId !== userId));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          } catch (e) {
+            console.error('Error blocking user:', e);
+          }
+        }}
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={[styles.header, isRTL && styles.headerRTL]}>
@@ -125,6 +190,8 @@ export default function CommunityFeedScreen() {
               recipe={item as Recipe}
               onPress={openRecipe}
               onToggleFavorite={toggleFavorite}
+              onReport={handleReport}
+              onBlockUser={handleBlockUser}
               isFavorited={favorites.includes((item as Recipe).id)}
               index={index}
             />

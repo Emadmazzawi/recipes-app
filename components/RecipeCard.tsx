@@ -15,6 +15,8 @@ interface RecipeCardProps {
   onEdit?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
   onToggleFavorite?: (id: string) => void;
+  onReport?: (recipe: Recipe) => void;
+  onBlockUser?: (userId: string) => void;
   isFavorited?: boolean;
   categoryColor?: string;
   reason?: string;
@@ -28,6 +30,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   onEdit,
   onShare,
   onToggleFavorite,
+  onReport,
+  onBlockUser,
   isFavorited = false,
   categoryColor,
   reason,
@@ -152,6 +156,24 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="trash" size={15} color={COLORS.error} />
+            </TouchableOpacity>
+          )}
+          {onReport && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); onReport(recipe); }}
+              style={[styles.iconBtn, styles.reportBtn]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="flag-outline" size={15} color={COLORS.error} />
+            </TouchableOpacity>
+          )}
+          {onBlockUser && recipe.userId && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); onBlockUser(recipe.userId!); }}
+              style={[styles.iconBtn, styles.blockBtn]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="hand-right-outline" size={15} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -344,6 +366,8 @@ const getStyles = (COLORS: any) => StyleSheet.create({
   shareBtn: { backgroundColor: COLORS.primaryTintDark },
   editBtn: { backgroundColor: COLORS.purpleTint },
   deleteBtn: { backgroundColor: COLORS.errorTint },
+  reportBtn: { backgroundColor: COLORS.errorTint },
+  blockBtn: { backgroundColor: COLORS.borderSubtle },
   cardTitle: {
     color: COLORS.textPrimary,
     fontSize: 21,

@@ -321,6 +321,7 @@ export async function getPublicRecipes(): Promise<Recipe[]> {
           isBuiltIn: row.is_built_in,
           createdAt: row.created_at,
           is_public: row.is_public,
+          userId: row.user_id,
         } as Recipe;
       });
     }
