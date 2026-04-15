@@ -2,10 +2,10 @@ import { Ingredient } from '../types';
 import { supabase } from './supabase';
 import { Platform } from 'react-native';
 
-const COPILOT_API_URL = Platform.OS === 'android' 
+const COPILOT_API_URL = process.env.EXPO_PUBLIC_AI_API_URL || (Platform.OS === 'android' 
   ? 'http://10.0.2.2:4141/v1/chat/completions' 
-  : 'http://localhost:4141/v1/chat/completions';
-const MODEL = 'gpt-4o-2024-05-13'; // Use the exact model ID from the copilot-api list
+  : 'http://localhost:4141/v1/chat/completions');
+const MODEL = process.env.EXPO_PUBLIC_AI_MODEL || 'gpt-4o-2024-05-13';
 
 async function callCopilotAPI(messages: any[]) {
   try {
@@ -29,13 +29,21 @@ async function callCopilotAPI(messages: any[]) {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Copilot API error: ${response.status} ${errText}`);
+      throw new Error(`AI API error: ${response.status} ${errText}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    let content = data.choices[0].message.content;
+    
+    // Robust cleaning for model responses that might include markdown
+    if (content.includes('```')) {
+      const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) content = match[1];
+    }
+    
+    return content.trim();
   } catch (error) {
-    console.error('Failed to call Copilot API:', error);
+    console.error('Failed to call AI API:', error);
     throw error;
   }
 }
@@ -55,22 +63,7 @@ export async function scanIngredientsFromImage(base64Image: string): Promise<Par
     ]);
 
     if (!text) throw new Error('No content received from AI.');
-
-    // Robust JSON array extraction
-    let jsonStr = '';
-    const blockMatch = text.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-    if (blockMatch) {
-      jsonStr = blockMatch[1];
-    } else {
-      const start = text.indexOf('[');
-      const end = text.lastIndexOf(']');
-      if (start === -1 || end === -1 || start >= end) {
-        throw new Error('Could not find JSON array bounds.');
-      }
-      jsonStr = text.substring(start, end + 1);
-    }
-
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (error) {
     console.error('Error scanning ingredients:', error);
     throw error;
@@ -92,20 +85,7 @@ export async function smartSearchRecipes(query: string, recipes: any[]): Promise
     ]);
 
     if (!text) return {};
-
-    // Robust JSON object extraction
-    let jsonStr = '';
-    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (blockMatch) {
-      jsonStr = blockMatch[1];
-    } else {
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
-      if (start === -1 || end === -1 || start >= end) return {};
-      jsonStr = text.substring(start, end + 1);
-    }
-
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (error) {
     console.error('Smart search error:', error);
     return {};
@@ -187,22 +167,7 @@ export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
     ]);
 
     if (!text) throw new Error('No content received from AI.');
-
-    // Robust JSON object extraction
-    let jsonStr = '';
-    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (blockMatch) {
-      jsonStr = blockMatch[1];
-    } else {
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
-      if (start === -1 || end === -1 || start >= end) {
-        throw new Error('Could not find JSON object bounds.');
-      }
-      jsonStr = text.substring(start, end + 1);
-    }
-
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (error) {
     console.error('URL import error:', error);
     throw error;
@@ -254,22 +219,7 @@ Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only val
     ]);
 
     if (!text) throw new Error('No content received from AI.');
-
-    // Robust JSON object extraction
-    let jsonStr = '';
-    const blockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (blockMatch) {
-      jsonStr = blockMatch[1];
-    } else {
-      const start = text.indexOf('{');
-      const end = text.lastIndexOf('}');
-      if (start === -1 || end === -1 || start >= end) {
-        throw new Error('Could not find JSON object bounds.');
-      }
-      jsonStr = text.substring(start, end + 1);
-    }
-
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (error) {
     console.error('Pantry generation error:', error);
     throw error;
