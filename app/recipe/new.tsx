@@ -354,7 +354,11 @@ export default function NewRecipeScreen() {
       }
     } catch (err: any) {
       console.error("[handleImportUrl] Failed", err);
-      Alert.alert(t.create.importFailed, err.message || t.create.importFailedMsg);
+      // Show more detailed error to help the user identify network/config issues
+      Alert.alert(
+        "Import Failed", 
+        `Error: ${err.message || "Unknown"}\n\nCheck your internet and console logs.`
+      );
     } finally {
       setImporting(false);
       setTempUrl('');

@@ -6,6 +6,13 @@ import { supabase } from './supabase';
  */
 async function callGeminiFunction(action: string, payload: any) {
   try {
+    const supabaseUrl = (supabase as any).supabaseUrl;
+    console.log(`[lib/gemini] Supabase URL being used: ${supabaseUrl}`);
+    
+    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+      throw new Error('Supabase URL is not configured. Check your environment variables.');
+    }
+
     console.log(`[lib/gemini] Calling Edge Function: ${action}`, {
       ...payload,
       base64Image: payload.base64Image ? '(base64 string...)' : undefined
@@ -17,7 +24,8 @@ async function callGeminiFunction(action: string, payload: any) {
 
     if (error) {
       console.error(`[lib/gemini] Supabase Invoke Error [${action}]:`, error);
-      throw error;
+      // More descriptive error for the UI
+      throw new Error(`Connection Error: ${error.message || 'Unknown error'}`);
     }
 
     if (!data) {
