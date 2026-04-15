@@ -15,7 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { action, payload } = await req.json();
+    const body = await req.json();
+    console.log('[Gemini Function] Body received:', JSON.stringify(body).substring(0, 500));
+    const { action, payload } = body;
     const API_KEY = Deno.env.get('GEMINI_API_KEY');
     
     if (!API_KEY) {

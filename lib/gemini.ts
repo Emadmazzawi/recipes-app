@@ -31,10 +31,17 @@ async function callGeminiFunction(action: string, payload: any) {
       if (error.status === 401 || error.status === 403) {
         details = "Unauthorized. Please deploy your function with '--no-verify-jwt' or check your project keys.";
       } else {
+        // Try to extract the body of the error from the response
         try {
-          if ((error as any).context?.text) {
-            const bodyJSON = JSON.parse((error as any).context.text);
-            details = bodyJSON.error || details;
+          // In some versions of supabase-js, the error body is in error.context.text
+          // We can also try to access the raw response if available
+          const errorWithContext = error as any;
+          if (errorWithContext.context?.text) {
+             const parsed = JSON.parse(errorWithContext.context.text);
+             details = parsed.error || details;
+          } else if (errorWithContext.message === "Edge Function returned a non-2xx status code") {
+             // If we can't find it, we'll suggest checking the dashboard logs
+             details = "Function Error. Check Supabase Dashboard Logs for [Fatal Function Error].";
           }
         } catch (e) {}
       }
