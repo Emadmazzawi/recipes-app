@@ -16,8 +16,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const router = useRouter();
+
+  React.useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.user_metadata?.push_notifications !== undefined) {
+      setPushEnabled(user.user_metadata.push_notifications);
+    }
+  };
+
+  const handleTogglePush = async (value: boolean) => {
+    setPushEnabled(value);
+    try {
+      await supabase.auth.updateUser({
+        data: { push_notifications: value }
+      });
+    } catch (error) {
+      console.error('Error saving push preference:', error);
+    }
+  };
 
   const handleLogout = () => {
     const performLogout = async () => {
@@ -135,15 +156,7 @@ export default function SettingsScreen() {
           {renderListItem("notifications-outline", "Push Notifications", undefined, 
             <Switch 
               value={pushEnabled} 
-              onValueChange={setPushEnabled} 
-              trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-            />
-          )}
-          <View style={styles.divider} />
-          {renderListItem("moon-outline", "Dark Mode", undefined, 
-            <Switch 
-              value={darkModeEnabled} 
-              onValueChange={setDarkModeEnabled} 
+              onValueChange={handleTogglePush} 
               trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
             />
           )}
