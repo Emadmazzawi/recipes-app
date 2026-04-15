@@ -19,15 +19,21 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured on the server');
     }
 
-    const MODEL = 'gemini-2.5-flash';
+    const MODEL = 'gemini-1.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
     
     let promptText = '';
-    let bodyData: any = { contents: [{ parts: [] }] };
+    let bodyData: any = { 
+      contents: [{ parts: [] }],
+      generationConfig: {
+        response_mime_type: "application/json",
+        temperature: 0.1,
+      }
+    };
 
     if (action === 'scan_ingredients') {
       const { base64Image } = payload;
-      promptText = "Extract ingredients from this image of a recipe list. Return ONLY a JSON array of objects with 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed. Output only the JSON array.";
+      promptText = "Extract ingredients from this image of a recipe list. Return a JSON array of objects with 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed.";
       bodyData.contents[0].parts = [
         { text: promptText },
         { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
@@ -39,7 +45,7 @@ serve(async (req) => {
         title: r.title,
         ingredients: r.ingredients.map((i: any) => i.name).join(', '),
       }));
-      promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return ONLY a JSON object where keys are recipe IDs and values are a short one-sentence explanation of why it matches. Recipes: ${JSON.stringify(recipeList)}`;
+      promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return a JSON array of recipe IDs that match. Recipes: ${JSON.stringify(recipeList)}`;
       bodyData.contents[0].parts = [{ text: promptText }];
     } else if (action === 'import_recipe') {
       let { recipeUrl, pageContent } = payload;
@@ -48,12 +54,20 @@ serve(async (req) => {
       // the edge function will attempt to fetch it directly
       if (!pageContent && recipeUrl) {
         try {
+          // Add timeout to prevent hanging the function
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
           const fetchRes = await fetch(recipeUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml',
-            }
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            },
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
+          
           if (fetchRes.ok) {
             const html = await fetchRes.text();
             pageContent = html
@@ -62,7 +76,7 @@ serve(async (req) => {
               .replace(/<[^>]+>/g, ' ')
               .replace(/\s+/g, ' ')
               .trim()
-              .substring(0, 8000);
+              .substring(0, 15000); // 1.5-flash handles 1M tokens, but we keep it reasonable
           }
         } catch (e) {
           console.error("Edge function failed to fetch URL directly", e);
@@ -81,8 +95,8 @@ serve(async (req) => {
       }`;
       
       promptText = pageContent
-        ? `Extract a complete recipe from the following webpage text. Return ONLY a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
-        : `Extract the complete recipe from this URL: ${recipeUrl}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`;
+        ? `Extract a complete recipe from the following webpage text. Return a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
+        : `Navigate to this URL (if you can) or use your internal knowledge to extract the complete recipe from this URL: ${recipeUrl}. Return a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default.`;
       
       bodyData.contents[0].parts = [{ text: promptText }];
     } else if (action === 'generate_pantry') {
