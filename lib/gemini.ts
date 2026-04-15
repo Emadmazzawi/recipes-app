@@ -7,10 +7,12 @@ import { supabase } from './supabase';
 async function callGeminiFunction(action: string, payload: any) {
   try {
     const supabaseUrl = (supabase as any).supabaseUrl;
-    console.log(`[lib/gemini] Supabase URL being used: ${supabaseUrl}`);
+    const supabaseKey = (supabase as any).supabaseKey;
+    
+    console.log(`[lib/gemini] Diagnostics - URL: ${supabaseUrl?.substring(0, 20)}... Key: ${supabaseKey?.substring(0, 10)}...`);
     
     if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
-      throw new Error('Supabase URL is not configured. Check your environment variables.');
+      throw new Error(`Config Error: Supabase URL is missing from app. Env keys: ${Object.keys(process.env).filter(k => k.startsWith('EXPO_PUBLIC')).join(', ')}`);
     }
 
     console.log(`[lib/gemini] Calling Edge Function: ${action}`, {
@@ -24,8 +26,17 @@ async function callGeminiFunction(action: string, payload: any) {
 
     if (error) {
       console.error(`[lib/gemini] Supabase Invoke Error [${action}]:`, error);
-      // More descriptive error for the UI
-      throw new Error(`Connection Error: ${error.message || 'Unknown error'}`);
+      
+      // If we got a response body, it might be an error from our function
+      let details = error.message;
+      try {
+        if ((error as any).context?.text) {
+          const bodyJSON = JSON.parse((error as any).context.text);
+          details = bodyJSON.error || details;
+        }
+      } catch (e) {}
+
+      throw new Error(`Server Error (${error.status || '?' }): ${details}`);
     }
 
     if (!data) {

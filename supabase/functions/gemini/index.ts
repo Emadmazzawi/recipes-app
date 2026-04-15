@@ -137,10 +137,16 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
       body: JSON.stringify(bodyData),
     });
 
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[Gemini API Error] Status: ${response.status}. Body: ${errText}`);
+      throw new Error(`Gemini API returned status ${response.status}`);
+    }
+
     const data = await response.json();
     
     if (data.error) {
-      console.error('[Gemini API Error]', data.error);
+      console.error('[Gemini API JSON Error]', data.error);
       throw new Error(data.error.message || 'API request failed');
     }
 
@@ -152,13 +158,14 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
 
     console.log(`[Gemini Function] Received response length: ${text.length}`);
 
-    // We'll return the raw text back to the client so it can do the regex matching / parsing
+    // Return the raw text back to the client
     return new Response(
       JSON.stringify({ text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
 
   } catch (error: any) {
+    console.error(`[Fatal Function Error] ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 },
