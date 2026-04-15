@@ -6,35 +6,50 @@ import { supabase } from './supabase';
  */
 async function callGeminiFunction(action: string, payload: any) {
   try {
+    console.log(`[lib/gemini] Calling Edge Function: ${action}`, {
+      ...payload,
+      base64Image: payload.base64Image ? '(base64 string...)' : undefined
+    });
+
     const { data, error } = await supabase.functions.invoke('gemini', {
       body: { action, payload }
     });
 
     if (error) {
-      console.error(`Edge function error [${action}]:`, error);
+      console.error(`[lib/gemini] Supabase Invoke Error [${action}]:`, error);
       throw error;
     }
 
-    if (!data || data.error) {
-      throw new Error(data?.error || 'No response from AI service');
+    if (!data) {
+      console.error(`[lib/gemini] No data returned from function [${action}]`);
+      throw new Error('No response from AI service');
     }
 
-    // The edge function returns a JSON with a 'text' field (which is the JSON string from Gemini)
-    const text = data.text;
-    if (!text) throw new Error('No content received from AI.');
+    if (data.error) {
+      console.error(`[lib/gemini] Function returned error [${action}]:`, data.error);
+      throw new Error(data.error);
+    }
 
-    // Try to parse the text as JSON, usually Gemini returns it inside the 'text' field
-    // Sometimes there might be markdown backticks, though we use response_mime_type: "application/json"
+    const text = data.text;
+    if (!text) {
+      console.error(`[lib/gemini] Function returned no text field [${action}]`, data);
+      throw new Error('No content received from AI.');
+    }
+
+    console.log(`[lib/gemini] Received text response length: ${text.length}`);
+
     try {
-      // Clean up markdown backticks if they exist (though they shouldn't with application/json)
+      // Clean up markdown backticks
       const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanedText);
+      const parsed = JSON.parse(cleanedText);
+      console.log(`[lib/gemini] Successfully parsed JSON for [${action}]`);
+      return parsed;
     } catch (parseErr) {
-      console.error('Failed to parse AI response as JSON:', text);
+      console.error(`[lib/gemini] JSON Parse Error [${action}]:`, text);
       throw new Error('AI returned an invalid response format.');
     }
   } catch (err: any) {
-    console.error(`Gemini call failed [${action}]:`, err);
+    console.error(`[lib/gemini] Gemini call failed [${action}]:`, err);
     throw err;
   }
 }

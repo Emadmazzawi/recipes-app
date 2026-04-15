@@ -53,6 +53,7 @@ serve(async (req) => {
       // If the client failed to fetch the page content due to CORS,
       // the edge function will attempt to fetch it directly
       if (!pageContent && recipeUrl) {
+        console.log(`[Import] Fetching content for URL: ${recipeUrl}`);
         try {
           // Add timeout to prevent hanging the function
           const controller = new AbortController();
@@ -70,6 +71,7 @@ serve(async (req) => {
           
           if (fetchRes.ok) {
             const html = await fetchRes.text();
+            console.log(`[Import] Successfully fetched HTML. Length: ${html.length}`);
             pageContent = html
               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
               .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -77,9 +79,12 @@ serve(async (req) => {
               .replace(/\s+/g, ' ')
               .trim()
               .substring(0, 15000); // 1.5-flash handles 1M tokens, but we keep it reasonable
+            console.log(`[Import] Cleaned content length: ${pageContent.length}`);
+          } else {
+            console.warn(`[Import] Fetch failed with status: ${fetchRes.status}`);
           }
         } catch (e) {
-          console.error("Edge function failed to fetch URL directly", e);
+          console.error("[Import] Edge function failed to fetch URL directly", e);
         }
       }
 
@@ -121,6 +126,8 @@ Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only val
       throw new Error('Unknown action specified');
     }
 
+    console.log(`[Gemini Function] Calling API with prompt length: ${promptText.length}`);
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -128,10 +135,19 @@ Return ONLY a JSON object matching this schema: ${recipeSchema}. Output only val
     });
 
     const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API request failed');
+    
+    if (data.error) {
+      console.error('[Gemini API Error]', data.error);
+      throw new Error(data.error.message || 'API request failed');
+    }
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('No content received from Gemini.');
+    if (!text) {
+      console.error('[Gemini API No Text]', data);
+      throw new Error('No content received from Gemini.');
+    }
+
+    console.log(`[Gemini Function] Received response length: ${text.length}`);
 
     // We'll return the raw text back to the client so it can do the regex matching / parsing
     return new Response(
