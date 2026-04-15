@@ -32,7 +32,6 @@ serve(async (req) => {
     let bodyData: any = { 
       contents: [{ parts: [] }],
       generationConfig: {
-        response_mime_type: "application/json",
         temperature: 0.1,
       }
     };
