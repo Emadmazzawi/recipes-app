@@ -131,27 +131,28 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
       throw new Error('Unknown action specified');
     }
 
-    // List of models to try in order of preference
+    // List of models to try in order of preference (using names from your list)
     const modelsToTry = [
       'gemini-1.5-flash',
       'gemini-1.5-flash-latest',
       'gemini-1.5-pro',
-      'gemini-pro',
-      'gemini-1.0-pro-001'
+      'gemini-pro'
     ];
     let lastError = '';
     let text = '';
 
     for (const modelName of modelsToTry) {
       try {
-        console.log(`[Gemini Function] Attempting model: ${modelName}`);
-        // Try v1 first for these models
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${API_KEY}`;
+        console.log(`[Gemini Function] Attempting: ${modelName} on v1beta`);
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
         
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bodyData),
+          body: JSON.stringify({
+            contents: bodyData.contents 
+            // We removed generationConfig entirely to avoid "Unknown field" errors
+          }),
         });
 
         const data = await response.json();
