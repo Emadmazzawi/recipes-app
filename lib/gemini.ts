@@ -27,14 +27,17 @@ async function callGeminiFunction(action: string, payload: any) {
     if (error) {
       console.error(`[lib/gemini] Supabase Invoke Error [${action}]:`, error);
       
-      // If we got a response body, it might be an error from our function
       let details = error.message;
-      try {
-        if ((error as any).context?.text) {
-          const bodyJSON = JSON.parse((error as any).context.text);
-          details = bodyJSON.error || details;
-        }
-      } catch (e) {}
+      if (error.status === 401 || error.status === 403) {
+        details = "Unauthorized. Please deploy your function with '--no-verify-jwt' or check your project keys.";
+      } else {
+        try {
+          if ((error as any).context?.text) {
+            const bodyJSON = JSON.parse((error as any).context.text);
+            details = bodyJSON.error || details;
+          }
+        } catch (e) {}
+      }
 
       throw new Error(`Server Error (${error.status || '?' }): ${details}`);
     }
