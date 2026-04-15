@@ -47,30 +47,39 @@ function RootLayout() {
 
   useEffect(() => {
     const initAuth = async () => {
+      // Fail-safe: Ensure the app initializes even if Supabase/Linking hangs
+      const failSafe = setTimeout(() => {
+        if (!initialized) {
+          setInitialized(true);
+        }
+      }, 3000);
+
       try {
         const guestStatus = await AsyncStorage.getItem('is_guest');
         setIsGuest(guestStatus === 'true');
         
-        // On Web, manually check the hash if getSession doesn't pick it up immediately
-        if (Platform.OS === 'web' && window.location.hash) {
+        // On Web, manually check the hash for tokens from Google Redirect
+        if (Platform.OS === 'web' && (window.location.hash || window.location.search)) {
           const url = window.location.href;
-          if (url.includes('access_token=')) {
-            const hashMatch = url.match(/access_token=([^&]+)/);
-            const refreshMatch = url.match(/refresh_token=([^&]+)/);
-            if (hashMatch && hashMatch[1] && refreshMatch && refreshMatch[1]) {
-              await supabase.auth.setSession({
-                access_token: hashMatch[1],
-                refresh_token: refreshMatch[1],
-              });
-            }
+          const token = url.match(/access_token=([^&]+)/)?.[1];
+          const refresh = url.match(/refresh_token=([^&]+)/)?.[1];
+          
+          if (token && refresh) {
+            await supabase.auth.setSession({
+              access_token: token,
+              refresh_token: refresh,
+            });
+            // Clear the tokens from the URL for security/cleanliness
+            window.history.replaceState(null, '', window.location.pathname);
           }
         }
 
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
       } catch (e) {
-        console.error(e);
+        console.error('Initial auth error:', e);
       } finally {
+        clearTimeout(failSafe);
         setInitialized(true);
       }
     };

@@ -88,7 +88,7 @@ export default function LoginScreen() {
     setErrorMessage('');
     try {
       const redirectUrl = Platform.OS === 'web' 
-        ? window.location.href.split('#')[0].split('?')[0]
+        ? 'https://recipes-app-eight-lime.vercel.app/auth'
         : Linking.createURL('/');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
