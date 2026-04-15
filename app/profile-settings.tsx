@@ -20,41 +20,71 @@ export default function SettingsScreen() {
   const router = useRouter();
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: async () => {
-          try {
-            await supabase.auth.signOut();
-            await AsyncStorage.removeItem('is_guest');
-            router.replace('/auth');
-          } catch (error) {
-            console.error('Logout error:', error);
-            // Even on error, force transition to ensure user feels disconnected
-            await AsyncStorage.removeItem('is_guest');
-            router.replace('/auth');
-          }
-      } }
-    ]);
+    const performLogout = async () => {
+      try {
+        await supabase.auth.signOut();
+        await AsyncStorage.removeItem('is_guest');
+        if (Platform.OS === 'web') {
+          window.location.href = '/auth'; // Hard reset for Web
+        } else {
+          router.replace('/auth');
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        await AsyncStorage.removeItem('is_guest');
+        if (Platform.OS === 'web') {
+          window.location.href = '/auth';
+        } else {
+          router.replace('/auth');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm("Are you sure you want to log out?")) {
+        performLogout();
+      }
+    } else {
+      Alert.alert("Log Out", "Are you sure you want to log out?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Log Out", style: "destructive", onPress: performLogout }
+      ]);
+    }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert("Delete Account", "This action is permanent and cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: async () => {
-          try {
-            // Attempt to call an RPC if one is configured for secure deletion
-            await supabase.rpc('delete_user');
-            // Regardless, log the user out to process the localized deletion
-            await supabase.auth.signOut();
-            router.replace('/auth');
-          } catch (error) {
-            console.error('Logout error:', error);
-            // Even on RPC error, force client sign out to respect user initiation
-            await supabase.auth.signOut();
-            router.replace('/auth');
-          }
-      } }
-    ]);
+    const performDelete = async () => {
+      try {
+        await supabase.rpc('delete_user');
+        await supabase.auth.signOut();
+        await AsyncStorage.removeItem('is_guest');
+        if (Platform.OS === 'web') {
+          window.location.href = '/auth';
+        } else {
+          router.replace('/auth');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        await supabase.auth.signOut();
+        await AsyncStorage.removeItem('is_guest');
+        if (Platform.OS === 'web') {
+          window.location.href = '/auth';
+        } else {
+          router.replace('/auth');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm("Delete Account: This action is permanent and cannot be undone. Are you sure?")) {
+        performDelete();
+      }
+    } else {
+      Alert.alert("Delete Account", "This action is permanent and cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: performDelete }
+      ]);
+    }
   };
 
   const renderGroupTitle = (title: string) => (

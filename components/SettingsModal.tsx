@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -38,18 +38,26 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     onClose(); // Close modal first
     if (session) {
       // Log out
-      Alert.alert('Log Out', 'Are you sure you want to log out?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            await supabase.auth.signOut();
-            await AsyncStorage.removeItem('is_guest');
-            router.replace('/auth');
-          },
-        },
-      ]);
+      const performLogout = async () => {
+        await supabase.auth.signOut();
+        await AsyncStorage.removeItem('is_guest');
+        if (Platform.OS === 'web') {
+          window.location.href = '/auth';
+        } else {
+          router.replace('/auth');
+        }
+      };
+
+      if (Platform.OS === 'web') {
+        if (window.confirm("Are you sure you want to log out?")) {
+          performLogout();
+        }
+      } else {
+        Alert.alert('Log Out', 'Are you sure you want to log out?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log Out', style: 'destructive', onPress: performLogout },
+        ]);
+      }
     } else {
       // Log in
       await AsyncStorage.removeItem('is_guest');
