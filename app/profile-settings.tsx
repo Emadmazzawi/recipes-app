@@ -82,9 +82,9 @@ export default function SettingsScreen() {
         {/* Account Section */}
         {renderGroupTitle("ACCOUNT")}
         <View style={styles.groupContainer}>
-          {renderListItem("person-outline", "Edit Profile", () => {})}
+          {renderListItem("person-outline", "Edit Profile", () => router.push('/edit-profile'))}
           <View style={styles.divider} />
-          {renderListItem("lock-closed-outline", "Change Password", () => {})}
+          {renderListItem("lock-closed-outline", "Change Password", () => router.push('/change-password'))}
         </View>
 
         {/* Preferences Section */}
