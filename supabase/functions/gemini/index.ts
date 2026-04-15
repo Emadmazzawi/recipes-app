@@ -132,14 +132,21 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
     }
 
     // List of models to try in order of preference
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-pro',
+      'gemini-pro',
+      'gemini-1.0-pro-001'
+    ];
     let lastError = '';
     let text = '';
 
     for (const modelName of modelsToTry) {
       try {
         console.log(`[Gemini Function] Attempting model: ${modelName}`);
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
+        // Try v1 first for these models
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${API_KEY}`;
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -152,12 +159,10 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
           text = data.candidates[0].content.parts[0].text;
           console.log(`[Gemini Function] Success with model: ${modelName}`);
-          break; // Success!
+          break; 
         } else {
-          const errMsg = data.error?.message || 'Unknown error';
-          console.warn(`[Gemini Function] Model ${modelName} failed: ${errMsg}`);
-          lastError = errMsg;
-          // Continue to next model if it's a 404 or similar
+          lastError = data.error?.message || 'Unknown error';
+          console.warn(`[Gemini Function] Model ${modelName} failed: ${lastError}`);
           continue;
         }
       } catch (e) {
@@ -168,7 +173,16 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
     }
 
     if (!text) {
-      throw new Error(`All models failed. Last error: ${lastError}`);
+      // Diagnostic check: Try to list available models
+      try {
+        const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${API_KEY}`;
+        const listRes = await fetch(listUrl);
+        const listData = await listRes.json();
+        console.log('[Diagnostic] Available models for this key:', JSON.stringify(listData.models?.map((m: any) => m.name)));
+      } catch (e) {
+        console.error('[Diagnostic] Failed to list models:', e.message);
+      }
+      throw new Error(`AI models unavailable. We tried: ${modelsToTry.join(', ')}. Details: ${lastError}`);
     }
 
     console.log(`[Gemini Function] Received response length: ${text.length}`);
