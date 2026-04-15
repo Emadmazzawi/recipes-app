@@ -7,6 +7,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Heartbeat log
+  console.log(`[Gemini Function] Received request: ${req.method} ${new Date().toISOString()}`);
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

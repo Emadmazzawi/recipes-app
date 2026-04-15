@@ -205,6 +205,7 @@ export default function NewRecipeScreen() {
     }
   };
 
+
   const pickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -340,6 +341,8 @@ export default function NewRecipeScreen() {
     }
     setShowUrlModal(false);
     setImporting(true);
+    // DEBUG: Immediate alert to confirm button click
+    Alert.alert("Debug", "Import process started for: " + tempUrl);
     console.log(`[handleImportUrl] Starting import for: ${tempUrl}`);
     try {
       const data = await handleSharedIdOrUrl(tempUrl);
