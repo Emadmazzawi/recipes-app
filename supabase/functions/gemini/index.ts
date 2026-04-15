@@ -131,31 +131,44 @@ Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other 
       throw new Error('Unknown action specified');
     }
 
-    console.log(`[Gemini Function] Calling API with prompt length: ${promptText.length}`);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyData),
-    });
+    // List of models to try in order of preference
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    let lastError = '';
+    let text = '';
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[Gemini API Error] Status: ${response.status}. Body: ${errText}`);
-      throw new Error(`Gemini API returned status ${response.status}`);
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`[Gemini Function] Attempting model: ${modelName}`);
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          text = data.candidates[0].content.parts[0].text;
+          console.log(`[Gemini Function] Success with model: ${modelName}`);
+          break; // Success!
+        } else {
+          const errMsg = data.error?.message || 'Unknown error';
+          console.warn(`[Gemini Function] Model ${modelName} failed: ${errMsg}`);
+          lastError = errMsg;
+          // Continue to next model if it's a 404 or similar
+          continue;
+        }
+      } catch (e) {
+        console.warn(`[Gemini Function] Network error with ${modelName}: ${e.message}`);
+        lastError = e.message;
+        continue;
+      }
     }
 
-    const data = await response.json();
-    
-    if (data.error) {
-      console.error('[Gemini API JSON Error]', data.error);
-      throw new Error(data.error.message || 'API request failed');
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      console.error('[Gemini API No Text]', data);
-      throw new Error('No content received from Gemini.');
+      throw new Error(`All models failed. Last error: ${lastError}`);
     }
 
     console.log(`[Gemini Function] Received response length: ${text.length}`);
