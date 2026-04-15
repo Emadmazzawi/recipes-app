@@ -51,6 +51,21 @@ function RootLayout() {
         const guestStatus = await AsyncStorage.getItem('is_guest');
         setIsGuest(guestStatus === 'true');
         
+        // On Web, manually check the hash if getSession doesn't pick it up immediately
+        if (Platform.OS === 'web' && window.location.hash) {
+          const url = window.location.href;
+          if (url.includes('access_token=')) {
+            const hashMatch = url.match(/access_token=([^&]+)/);
+            const refreshMatch = url.match(/refresh_token=([^&]+)/);
+            if (hashMatch && hashMatch[1] && refreshMatch && refreshMatch[1]) {
+              await supabase.auth.setSession({
+                access_token: hashMatch[1],
+                refresh_token: refreshMatch[1],
+              });
+            }
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
       } catch (e) {

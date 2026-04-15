@@ -88,7 +88,7 @@ export default function LoginScreen() {
     setErrorMessage('');
     try {
       const redirectUrl = Platform.OS === 'web' 
-        ? window.location.origin 
+        ? window.location.href.split('#')[0].split('?')[0]
         : Linking.createURL('/');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
