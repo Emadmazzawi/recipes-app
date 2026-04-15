@@ -25,7 +25,8 @@ serve(async (req) => {
     }
 
     const MODEL = 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+    // Use v1 instead of v1beta for better stability with standard models
+    const url = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${API_KEY}`;
     
     let promptText = '';
     let bodyData: any = { 
