@@ -106,44 +106,52 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
   }
 };
 
-export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
-  let url = recipeUrl.trim();
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-
+export async function importRecipeFromUrl(input: string): Promise<any> {
+  const trimmedInput = input.trim();
+  const isUrl = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(trimmedInput) && !trimmedInput.includes(' ');
+  
   let pageContent = '';
-  try {
-    const pageResponse = await fetchWithTimeout(url, {
-      headers: { Accept: 'text/html,application/xhtml+xml' },
-    }, 5000);
-    if (!pageResponse.ok) throw new Error('Direct fetch failed');
-    const html = await pageResponse.text();
-    pageContent = html;
-  } catch (err) {
-    console.log('Direct fetch failed, trying proxy...', err);
-    try {
-      // Fallback to a CORS proxy for web usage
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const proxyResponse = await fetchWithTimeout(proxyUrl, {}, 8000);
-      if (proxyResponse.ok) {
-        const proxyData = await proxyResponse.json();
-        pageContent = proxyData.contents || '';
-      }
-    } catch (proxyErr) {
-      console.log('Proxy fetch failed as well', proxyErr);
-      pageContent = '';
+  let url = trimmedInput;
+
+  if (isUrl) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
     }
+
+    try {
+      const pageResponse = await fetchWithTimeout(url, {
+        headers: { Accept: 'text/html,application/xhtml+xml' },
+      }, 5000);
+      if (pageResponse.ok) {
+        pageContent = await pageResponse.text();
+      }
+    } catch (err) {
+      console.log('Direct fetch failed, trying proxy...', err);
+      try {
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const proxyResponse = await fetchWithTimeout(proxyUrl, {}, 8000);
+        if (proxyResponse.ok) {
+          const proxyData = await proxyResponse.json();
+          pageContent = proxyData.contents || '';
+        }
+      } catch (proxyErr) {
+        console.log('Proxy fetch failed as well', proxyErr);
+      }
+    }
+  } else {
+    // Input is likely raw text pasted by the user
+    pageContent = trimmedInput;
   }
 
-  if (pageContent) {
+  if (pageContent && isUrl) {
+    // Strip HTML only if it came from a URL
     pageContent = pageContent
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
-      .substring(0, 8000);
+      .substring(0, 10000); // Increased limit as Gemma handles larger contexts well
   }
 
   try {
@@ -158,9 +166,11 @@ export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
       "steps": ["string"]
     }`;
     
-    const promptText = pageContent
-      ? `Extract a complete recipe from the following webpage text. Return ONLY a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
-      : `Extract the complete recipe from this URL: ${url}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`;
+    const promptText = isUrl 
+      ? (pageContent 
+          ? `Extract a complete recipe from the following webpage text. Return ONLY a JSON object matching this schema: ${recipeSchema}\n\nWebpage content:\n${pageContent}`
+          : `Extract the complete recipe from this URL: ${url}. Return ONLY a JSON object matching this schema: ${recipeSchema}. If a field is missing, provide a sensible default. Output only valid JSON.`)
+      : `I have pasted the text of a recipe below. Please extract the details and return ONLY a JSON object matching this schema: ${recipeSchema}\n\nRecipe Text:\n${pageContent}`;
     
     const text = await callCopilotAPI([
       { role: 'user', content: promptText }
@@ -169,7 +179,7 @@ export async function importRecipeFromUrl(recipeUrl: string): Promise<any> {
     if (!text) throw new Error('No content received from AI.');
     return JSON.parse(text);
   } catch (error) {
-    console.error('URL import error:', error);
+    console.error('Import error:', error);
     throw error;
   }
 }

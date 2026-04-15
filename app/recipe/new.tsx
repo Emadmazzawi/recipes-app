@@ -712,15 +712,16 @@ export default function NewRecipeScreen() {
                 <Text style={[styles.modalTitle, isRTL && styles.textRTL]}>{t.create.importFromUrl}</Text>
                 <Text style={[styles.modalSubtitle, isRTL && styles.textRTL]}>{t.create.importFromUrlSub}</Text>
                 <TextInput
-                  style={[styles.modalInput, isRTL && styles.textRTL]}
+                  style={[styles.modalInput, styles.modalInputMulti, isRTL && styles.textRTL]}
                   placeholder={t.create.urlPlaceholder}
                   placeholderTextColor={COLORS.textFaint}
                   value={tempUrl}
                   onChangeText={setTempUrl}
                   autoFocus
                   autoCapitalize="none"
-                  keyboardType="url"
-                  onSubmitEditing={handleImportUrl}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
                   textAlign={isRTL ? 'right' : 'left'}
                 />
                 <View style={[styles.modalButtons, isRTL && styles.rowRTL]}>
@@ -905,6 +906,7 @@ const getStyles = (COLORS: any) => StyleSheet.create({
   modalTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 6 },
   modalSubtitle: { color: COLORS.textSecondary, fontSize: 14, marginBottom: 20, lineHeight: 20 },
   modalInput: { backgroundColor: COLORS.surfaceDeep, borderRadius: 12, color: COLORS.textPrimary, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 20 },
+  modalInputMulti: { minHeight: 120 },
   modalButtons: { flexDirection: 'row', gap: 12 },
   modalBtn: { flex: 1, borderRadius: 12, overflow: 'hidden' },
   modalBtnCancel: { backgroundColor: COLORS.surfaceDeep, justifyContent: 'center', alignItems: 'center', paddingVertical: 14 },
