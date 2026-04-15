@@ -45,7 +45,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           style: 'destructive',
           onPress: async () => {
             await supabase.auth.signOut();
-            await AsyncStorage.setItem('is_guest', 'true');
+            await AsyncStorage.removeItem('is_guest');
             router.replace('/auth');
           },
         },

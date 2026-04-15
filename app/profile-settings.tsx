@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -21,7 +22,18 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => router.replace('/auth') }
+      { text: "Log Out", style: "destructive", onPress: async () => {
+          try {
+            await supabase.auth.signOut();
+            await AsyncStorage.removeItem('is_guest');
+            router.replace('/auth');
+          } catch (error) {
+            console.error('Logout error:', error);
+            // Even on error, force transition to ensure user feels disconnected
+            await AsyncStorage.removeItem('is_guest');
+            router.replace('/auth');
+          }
+      } }
     ]);
   };
 
