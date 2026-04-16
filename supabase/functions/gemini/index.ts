@@ -8,7 +8,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   // Heartbeat log
-  console.log(`[Gemini Function] Received request: ${req.method} ${new Date().toISOString()}`);
+  console.log(`[AI Function] Received request: ${req.method} ${new Date().toISOString()}`);
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -16,33 +16,33 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log('[Gemini Function] Body received:', JSON.stringify(body).substring(0, 500));
+    console.log('[AI Function] Body received:', JSON.stringify(body).substring(0, 500));
     const { action, payload } = body;
-    const API_KEY = Deno.env.get('GEMINI_API_KEY');
+    
+    // Check for GITHUB_TOKEN or fallback to GEMINI_API_KEY if they haven't renamed it yet
+    const API_KEY = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('GEMINI_API_KEY');
     
     if (!API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured on the server');
+      throw new Error('GITHUB_TOKEN is not configured on the server');
     }
 
-    const MODEL = 'gemini-1.5-flash';
-    // Use v1 instead of v1beta for better stability with standard models
-    const url = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${API_KEY}`;
+    const MODEL = 'gpt-4o-mini';
+    const GITHUB_MODELS_URL = `https://models.inference.ai.azure.com/chat/completions`;
     
-    let promptText = '';
-    let bodyData: any = { 
-      contents: [{ parts: [] }],
-      generationConfig: {
-        temperature: 0.1,
-      }
-    };
+    let messages: any[] = [];
+    const responseFormat = { "type": "json_object" };
 
     if (action === 'scan_ingredients') {
       const { base64Image } = payload;
-      promptText = "Extract ingredients from this image of a recipe list. Return a JSON array of objects with 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed.";
-      bodyData.contents[0].parts = [
-        { text: promptText },
-        { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
-      ];
+      const promptText = "Extract ingredients from this image of a recipe list. Return a JSON object with a single key 'ingredients' which is an array of objects. Each object should have 'name' (string), 'amount' (number), and 'unit' (string) keys. If amount is not specified, use 1. If unit is not specified, use 'piece'. Standardize units to: g, kg, ml, l, cup, tbsp, tsp, oz, lb, piece, pinch, clove, slice. Image might be handwritten or printed.";
+      
+      messages = [{
+        role: "user",
+        content: [
+          { type: "text", text: promptText },
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+        ]
+      }];
     } else if (action === 'smart_search') {
       const { query, recipes } = payload;
       const recipeList = recipes.map((r: any) => ({
@@ -50,17 +50,15 @@ serve(async (req) => {
         title: r.title,
         ingredients: r.ingredients.map((i: any) => i.name).join(', '),
       }));
-      promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return a JSON array of recipe IDs that match. Recipes: ${JSON.stringify(recipeList)}`;
-      bodyData.contents[0].parts = [{ text: promptText }];
+      const promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return ONLY a JSON object with a key 'matching_ids' containing an array of matched recipe IDs. Recipes: ${JSON.stringify(recipeList)}`;
+      
+      messages = [{ role: "user", content: promptText }];
     } else if (action === 'import_recipe') {
       let { recipeUrl, pageContent } = payload;
       
-      // If the client failed to fetch the page content due to CORS,
-      // the edge function will attempt to fetch it directly
       if (!pageContent && recipeUrl) {
         console.log(`[Import] Fetching content for URL: ${recipeUrl}`);
         try {
-          // Add timeout to prevent hanging the function
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000);
           
@@ -83,7 +81,7 @@ serve(async (req) => {
               .replace(/<[^>]+>/g, ' ')
               .replace(/\s+/g, ' ')
               .trim()
-              .substring(0, 15000); // 1.5-flash handles 1M tokens, but we keep it reasonable
+              .substring(0, 30000); // Allow more length since gpt-4o-mini is efficient
             console.log(`[Import] Cleaned content length: ${pageContent.length}`);
           } else {
             console.warn(`[Import] Fetch failed with status: ${fetchRes.status}`);
@@ -94,101 +92,105 @@ serve(async (req) => {
       }
 
       const recipeSchema = `{
-        "title": "string",
-        "description": "string",
-        "servings": number,
-        "prepTime": number,
-        "cookTime": number,
-        "category": "Breakfast|Main|Appetizer|Dessert|Baking|Soup|Salad|Drinks|Other",
-        "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
-        "steps": ["string"]
+        "recipe": {
+          "title": "string",
+          "description": "string",
+          "servings": number,
+          "prepTime": number,
+          "cookTime": number,
+          "category": "Breakfast|Main|Appetizer|Dessert|Baking|Soup|Salad|Drinks|Other",
+          "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
+          "steps": ["string"]
+        }
       }`;
       
-      promptText = pageContent
-        ? `Extract a complete recipe from the following webpage text. Return ONLY a valid JSON object matching this schema: ${recipeSchema}. Do not include any explanations or conversational text. Webpage content:\n${pageContent}`
-        : `Return ONLY a valid JSON object representing a recipe for this URL: ${recipeUrl}. Matching this schema: ${recipeSchema}. If you don't know the exact recipe, provide a sensible default based on the title in the URL. Do not include any text outside the JSON.`;
+      const promptText = pageContent
+        ? `Extract a complete recipe from the following webpage text. Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. Do not include any explanations. Webpage content:\n${pageContent}`
+        : `Return ONLY a valid JSON object representing a recipe for this URL: ${recipeUrl}. Matching this exact schema: ${recipeSchema}. If you don't know the exact recipe, provide a sensible default based on the title in the URL. Do not include any text outside the JSON.`;
       
-      bodyData.contents[0].parts = [{ text: promptText }];
+      messages = [{ role: "user", content: promptText }];
     } else if (action === 'generate_pantry') {
       const { ingredients } = payload;
       const recipeSchema = `{
-        "title": "string",
-        "description": "string",
-        "servings": number,
-        "prepTime": number,
-        "cookTime": number,
-        "category": "Main|Appetizer|Dessert|Baking|Soup|Salad|Breakfast|Drinks|Other",
-        "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
-        "steps": ["string"]
+        "recipe": {
+          "title": "string",
+          "description": "string",
+          "servings": number,
+          "prepTime": number,
+          "cookTime": number,
+          "category": "Main|Appetizer|Dessert|Baking|Soup|Salad|Breakfast|Drinks|Other",
+          "ingredients": [{"name": "string", "amount": number, "unit": "string"}],
+          "steps": ["string"]
+        }
       }`;
       
-      promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
+      const promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
 Create a delicious recipe that uses these ingredients. 
-Return ONLY a valid JSON object matching this schema: ${recipeSchema}. No other text.`;
+Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No other text.`;
       
-      bodyData.contents[0].parts = [{ text: promptText }];
+      messages = [{ role: "user", content: promptText }];
     } else {
       throw new Error('Unknown action specified');
     }
 
-    // List of models to try in order of preference (using names from your list)
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro',
-      'gemini-pro'
-    ];
-    let lastError = '';
+    const requestBody = {
+      model: MODEL,
+      messages: messages,
+      response_format: responseFormat, // Enforce valid JSON structure
+      temperature: 0.1
+    };
+
+    console.log(`[AI Function] Sending request to GitHub Models API (${MODEL})`);
+    
     let text = '';
+    
+    try {
+      const response = await fetch(GITHUB_MODELS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`[Gemini Function] Attempting: ${modelName} on v1beta`);
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
+      const data = await response.json();
+
+      if (response.ok && data.choices?.[0]?.message?.content) {
+        text = data.choices[0].message.content;
+        console.log(`[AI Function] Success with model: ${MODEL}`);
         
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: bodyData.contents 
-            // We removed generationConfig entirely to avoid "Unknown field" errors
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          text = data.candidates[0].content.parts[0].text;
-          console.log(`[Gemini Function] Success with model: ${modelName}`);
-          break; 
-        } else {
-          lastError = data.error?.message || 'Unknown error';
-          console.warn(`[Gemini Function] Model ${modelName} failed: ${lastError}`);
-          continue;
+        // Parse the JSON object from the model and un-nest it to match what the frontend expects
+        try {
+           const parsedText = JSON.parse(text);
+           if (action === 'smart_search' && parsedText.matching_ids) {
+              text = JSON.stringify(parsedText.matching_ids);
+           } else if (action === 'scan_ingredients' && parsedText.ingredients) {
+              text = JSON.stringify(parsedText.ingredients);
+           } else if (parsedText.recipe) {
+              // For import_recipe and generate_pantry
+              text = JSON.stringify(parsedText.recipe);
+           } else {
+              text = JSON.stringify(parsedText);
+           }
+        } catch (e) {
+           console.log("[AI Function] JSON normalization failed, proceeding with raw.", e);
         }
-      } catch (e) {
-        console.warn(`[Gemini Function] Network error with ${modelName}: ${e.message}`);
-        lastError = e.message;
-        continue;
+      } else {
+        const errorMsg = data.error?.message || 'Unknown error API';
+        console.warn(`[AI Function] Model ${MODEL} failed: ${errorMsg}`);
+        throw new Error(`AI model failed: ${errorMsg}`);
       }
+    } catch (e: any) {
+      console.warn(`[AI Function] Network or processing error with ${MODEL}: ${e.message}`);
+      throw e;
     }
 
     if (!text) {
-      // Diagnostic check: Try to list available models
-      try {
-        const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${API_KEY}`;
-        const listRes = await fetch(listUrl);
-        const listData = await listRes.json();
-        console.log('[Diagnostic] Available models for this key:', JSON.stringify(listData.models?.map((m: any) => m.name)));
-      } catch (e) {
-        console.error('[Diagnostic] Failed to list models:', e.message);
-      }
-      throw new Error(`AI models unavailable. We tried: ${modelsToTry.join(', ')}. Details: ${lastError}`);
+      throw new Error(`AI models unavailable.`);
     }
 
-    console.log(`[Gemini Function] Received response length: ${text.length}`);
-
-    // Return the raw text back to the client
+    // Return the text string just like Gemini version did
     return new Response(
       JSON.stringify({ text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
