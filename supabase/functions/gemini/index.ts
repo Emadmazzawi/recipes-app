@@ -19,7 +19,7 @@ serve(async (req) => {
     console.log('[AI Function] Body received:', JSON.stringify(body).substring(0, 500));
     const { action, payload } = body;
     
-    // Check for GITHUB_TOKEN or fallback to GEMINI_API_KEY if they haven't renamed it yet
+    // Check for GITHUB_TOKEN or fallback to GEMINI_API_KEY
     const API_KEY = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('GEMINI_API_KEY');
     
     if (!API_KEY) {
@@ -50,7 +50,7 @@ serve(async (req) => {
         title: r.title,
         ingredients: r.ingredients.map((i: any) => i.name).join(', '),
       }));
-      const promptText = `Analyze the search query: "${query}" against this list of recipes. Identify which ones match (directly or conceptually). Return ONLY a JSON object with a key 'matching_ids' containing an array of matched recipe IDs. Recipes: ${JSON.stringify(recipeList)}`;
+      const promptText = `Analyze search query: "${query}" against these recipes. Identify which match (directly or conceptually). Return ONLY a JSON object with a key 'results' where keys are recipe IDs and values are very brief reasons (max 10 words) why they match. Recipes: ${JSON.stringify(recipeList)}`;
       
       messages = [{ role: "user", content: promptText }];
     } else if (action === 'import_recipe') {
@@ -60,7 +60,7 @@ serve(async (req) => {
         console.log(`[Import] Fetching content for URL: ${recipeUrl}`);
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
           
           const fetchRes = await fetch(recipeUrl, {
             headers: {
@@ -75,14 +75,30 @@ serve(async (req) => {
           if (fetchRes.ok) {
             const html = await fetchRes.text();
             console.log(`[Import] Successfully fetched HTML. Length: ${html.length}`);
-            pageContent = html
+            
+            // Extract JSON-LD (high quality recipe data often found here)
+            const ldJsonMatches = html.matchAll(/<script\b[^>]*type=['"]application\/ld\+json['"][^>]*>([\s\S]*?)<\/script>/gi);
+            let ldJsonContent = '';
+            for (const match of ldJsonMatches) {
+               ldJsonContent += match[1] + '\n';
+            }
+            if (ldJsonContent) {
+               console.log(`[Import] Found JSON-LD content. Length: ${ldJsonContent.length}`);
+            }
+
+            const cleanText = html
               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
               .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
               .replace(/<[^>]+>/g, ' ')
               .replace(/\s+/g, ' ')
               .trim()
-              .substring(0, 30000); // Allow more length since gpt-4o-mini is efficient
-            console.log(`[Import] Cleaned content length: ${pageContent.length}`);
+              .substring(0, 15000);
+            
+            pageContent = ldJsonContent 
+              ? `JSON-LD DATA:\n${ldJsonContent}\n\nPAGE TEXT:\n${cleanText}`.substring(0, 30000)
+              : cleanText;
+              
+            console.log(`[Import] Prepared content length: ${pageContent.length}`);
           } else {
             console.warn(`[Import] Fetch failed with status: ${fetchRes.status}`);
           }
@@ -105,7 +121,7 @@ serve(async (req) => {
       }`;
       
       const promptText = pageContent
-        ? `Extract a complete recipe from the following webpage text. Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. Do not include any explanations. Webpage content:\n${pageContent}`
+        ? `Extract a complete recipe from the provided data. Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. Do not include any explanations. Webpage content:\n${pageContent}`
         : `Return ONLY a valid JSON object representing a recipe for this URL: ${recipeUrl}. Matching this exact schema: ${recipeSchema}. If you don't know the exact recipe, provide a sensible default based on the title in the URL. Do not include any text outside the JSON.`;
       
       messages = [{ role: "user", content: promptText }];
@@ -124,9 +140,8 @@ serve(async (req) => {
         }
       }`;
       
-      const promptText = `You are a creative executive chef. I have the following ingredients in my fridge/pantry: ${ingredients.join(', ')}. 
-Create a delicious recipe that uses these ingredients. 
-Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No other text.`;
+      const promptText = `You are a creative executive chef. I have the following ingredients: ${ingredients.join(', ')}. 
+Create a delicious recipe using them. Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No other text.`;
       
       messages = [{ role: "user", content: promptText }];
     } else {
@@ -136,7 +151,7 @@ Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No 
     const requestBody = {
       model: MODEL,
       messages: messages,
-      response_format: responseFormat, // Enforce valid JSON structure
+      response_format: responseFormat,
       temperature: 0.1
     };
 
@@ -160,15 +175,14 @@ Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No 
         text = data.choices[0].message.content;
         console.log(`[AI Function] Success with model: ${MODEL}`);
         
-        // Parse the JSON object from the model and un-nest it to match what the frontend expects
+        // Un-nest the response to match what the frontend expects
         try {
            const parsedText = JSON.parse(text);
-           if (action === 'smart_search' && parsedText.matching_ids) {
-              text = JSON.stringify(parsedText.matching_ids);
+           if (action === 'smart_search' && parsedText.results) {
+              text = JSON.stringify(parsedText.results);
            } else if (action === 'scan_ingredients' && parsedText.ingredients) {
               text = JSON.stringify(parsedText.ingredients);
            } else if (parsedText.recipe) {
-              // For import_recipe and generate_pantry
               text = JSON.stringify(parsedText.recipe);
            } else {
               text = JSON.stringify(parsedText);
@@ -182,7 +196,7 @@ Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No 
         throw new Error(`AI model failed: ${errorMsg}`);
       }
     } catch (e: any) {
-      console.warn(`[AI Function] Network or processing error with ${MODEL}: ${e.message}`);
+      console.warn(`[AI Function] Processing error: ${e.message}`);
       throw e;
     }
 
@@ -190,7 +204,6 @@ Return ONLY a valid JSON object matching this exact schema: ${recipeSchema}. No 
       throw new Error(`AI models unavailable.`);
     }
 
-    // Return the text string just like Gemini version did
     return new Response(
       JSON.stringify({ text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
