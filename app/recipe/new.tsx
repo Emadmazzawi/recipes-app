@@ -93,13 +93,19 @@ export default function NewRecipeScreen() {
     )).start();
   }, []);
 
-  const populateFromData = (data: any) => {
-    setTitle(data.title || '');
-    setDescription(data.description || '');
-    setServings(data.servings?.toString() || '4');
-    setPrepTime(data.prepTime?.toString() || '0');
-    setCookTime(data.cookTime?.toString() || '0');
-    setCategory(data.category || 'Other');
+  const populateFromData = (rawData: any) => {
+    console.log("[populateFromData] rawData keys:", rawData ? Object.keys(rawData) : "null");
+    
+    // Safety check: sometimes the un-nesting fails or AI wraps it differently
+    const data = rawData?.recipe || rawData;
+    console.log("[populateFromData] effective data keys:", Object.keys(data));
+
+    if (data.title) setTitle(data.title.toString());
+    if (data.description) setDescription(data.description.toString());
+    if (data.servings) setServings(data.servings.toString());
+    if (data.prepTime) setPrepTime(data.prepTime.toString());
+    if (data.cookTime) setCookTime(data.cookTime.toString());
+    if (data.category) setCategory(data.category);
     
     if (data.imageUri && !data.unsplashImageUrl) {
         setImageUri(data.imageUri);
@@ -110,18 +116,25 @@ export default function NewRecipeScreen() {
 
     if (data.ingredients && Array.isArray(data.ingredients)) {
       console.log(`[populateFromData] Processing ${data.ingredients.length} ingredients`);
-      setIngredients(data.ingredients.map((ing: any) => ({
+      const mapped = data.ingredients.map((ing: any) => ({
         id: generateId(),
         name: ing.name || t.create.unknownIngredient,
-        amount: ing.amount || 0,
+        amount: parseFloat(ing.amount) || 0,
         unit: (ing.unit || 'piece') as any,
-      })));
+      }));
+      setIngredients(mapped);
     }
+
     if (data.steps && Array.isArray(data.steps)) {
       console.log(`[populateFromData] Processing ${data.steps.length} steps`);
-      setSteps(data.steps.filter((s: any) => typeof s === 'string' && s.trim()));
+      const mappedSteps = data.steps
+        .filter((s: any) => s !== null && s !== undefined)
+        .map((s: any) => s.toString().trim())
+        .filter((s: string) => s.length > 0);
+      setSteps(mappedSteps);
     }
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
     Alert.alert(t.create.importSuccess, t.create.importSuccessMsg);
   };
 

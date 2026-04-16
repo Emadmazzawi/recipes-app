@@ -31,17 +31,14 @@ async function callGeminiFunction(action: string, payload: any) {
       if (error.status === 401 || error.status === 403) {
         details = "Unauthorized. Please deploy your function with '--no-verify-jwt' or check your project keys.";
       } else {
-        // Try to extract the body of the error from the response
         try {
-          // In some versions of supabase-js, the error body is in error.context.text
-          // We can also try to access the raw response if available
+          // Attempt to extract structured error from body if possible
           const errorWithContext = error as any;
           if (errorWithContext.context?.text) {
              const parsed = JSON.parse(errorWithContext.context.text);
              details = parsed.error || details;
           } else if (errorWithContext.message === "Edge Function returned a non-2xx status code") {
-             // If we can't find it, we'll suggest checking the dashboard logs
-             details = "Function Error. Check Supabase Dashboard Logs for [Fatal Function Error].";
+             details = "Function Error. Check your Supabase Dashboard logs for [Fatal Function Error] - this usually means a scraping failure or API rate limit.";
           }
         } catch (e) {}
       }
@@ -65,10 +62,9 @@ async function callGeminiFunction(action: string, payload: any) {
       throw new Error('No content received from AI.');
     }
 
-    console.log(`[lib/gemini] Received text response length: ${text.length}`);
+    console.log(`[lib/gemini] Received response for [${action}], length: ${text.length}`);
 
     try {
-      // Clean up markdown backticks
       const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
       const parsed = JSON.parse(cleanedText);
       console.log(`[lib/gemini] Successfully parsed JSON for [${action}]`);
@@ -87,12 +83,12 @@ export async function scanIngredientsFromImage(base64Image: string): Promise<Par
   return await callGeminiFunction('scan_ingredients', { base64Image });
 }
 
-export async function smartSearchRecipes(query: string, recipes: any[]): Promise<string[]> {
+export async function smartSearchRecipes(query: string, recipes: any[]): Promise<Record<string, string>> {
   try {
     return await callGeminiFunction('smart_search', { query, recipes });
   } catch (error) {
     console.error('Smart search failed:', error);
-    return [];
+    return {};
   }
 }
 
