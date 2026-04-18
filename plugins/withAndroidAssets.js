@@ -15,8 +15,11 @@ const withAndroidAssets = (config) => {
         'app/src/main/assets'
       );
 
+      console.log(`[withAndroidAssets] Target path: ${androidAssetsPath}`);
+
       // Ensure the directory exists
       if (!fs.existsSync(androidAssetsPath)) {
+        console.log(`[withAndroidAssets] Creating directory: ${androidAssetsPath}`);
         fs.mkdirSync(androidAssetsPath, { recursive: true });
       }
 
@@ -27,8 +30,16 @@ const withAndroidAssets = (config) => {
       if (fs.existsSync(sourceFile)) {
         console.log(`[withAndroidAssets] Copying ${sourceFile} to ${targetFile}`);
         fs.copyFileSync(sourceFile, targetFile);
+        
+        // Final verification check within the build process
+        if (fs.existsSync(targetFile)) {
+          const stats = fs.statSync(targetFile);
+          console.log(`[withAndroidAssets] SUCCESS: File exists at target. Size: ${stats.size} bytes.`);
+        } else {
+          console.error(`[withAndroidAssets] FAILURE: File was copied but does not exist at target!`);
+        }
       } else {
-        console.warn(`[withAndroidAssets] Source file not found: ${sourceFile}`);
+        console.error(`[withAndroidAssets] Source file not found at: ${sourceFile}`);
       }
 
       return config;

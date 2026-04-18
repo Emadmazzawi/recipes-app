@@ -2,7 +2,7 @@
 export default {
   name: "Smart Recipes",
   slug: "recipes-app",
-  version: "1.0.5",
+  version: "1.0.6",
   orientation: "portrait",
   userInterfaceStyle: "automatic",
   icon: "./assets/icon.png",
@@ -14,11 +14,11 @@ export default {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.emadmazzawi.recipesapp",
-    buildNumber: "6"
+    buildNumber: "7"
   },
   android: {
     package: "com.emadmazzawi.recipesapp",
-    versionCode: 6,
+    versionCode: 7,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#0a0a0f"
