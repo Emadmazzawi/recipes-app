@@ -2,7 +2,7 @@
 export default {
   name: "Smart Recipes",
   slug: "recipes-app",
-  version: "1.0.7",
+  version: "1.0.8",
   orientation: "portrait",
   userInterfaceStyle: "automatic",
   icon: "./assets/icon.png",
@@ -14,11 +14,11 @@ export default {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.emadmazzawi.recipesapp",
-    buildNumber: "8"
+    buildNumber: "9"
   },
   android: {
     package: "com.emadmazzawi.recipesapp",
-    versionCode: 8,
+    versionCode: 9,
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#0a0a0f"
@@ -34,10 +34,8 @@ export default {
     "expo-secure-store",
     "expo-web-browser",
     [
-      "expo-adi-registration",
-      {
-        "token": "DIZPKOKBDBU6YAAAAAAAAAAAAAA"
-      }
+      "./withPlayToken.js",
+      "DIZPKOKBDBU6YAAAAAAAAAAAAA"
     ]
   ],
   scheme: "recipesapp",
